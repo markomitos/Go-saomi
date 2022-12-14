@@ -49,7 +49,7 @@ func (h *HLL) addToHLL(elem string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var counter uint8 = 0
+	var counter uint8 = 1
 	for i := uint8(len(hash) - 1); i >= h.p-1; i-- {
 		if hash[i] == '0' {
 			counter++
