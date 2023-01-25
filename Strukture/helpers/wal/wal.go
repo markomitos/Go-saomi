@@ -73,7 +73,7 @@ func (wal *WriteAheadLog) newEntry(key []byte, value []byte) *Entry {
 	e.timestamp = make([]byte, 8)
 	binary.BigEndian.PutUint64(e.timestamp, uint64(time.Now().Unix()))
 	e.tombstone = make([]byte, 1)
-	bytes := make([]byte, 25+len(key)+len(value))
+	bytes := make([]byte, 0)
 	bytes = append(bytes, e.timestamp...)
 	bytes = append(bytes, e.tombstone...)
 	bytes = append(bytes, e.key_size...)
@@ -88,7 +88,8 @@ func (wal *WriteAheadLog) newEntry(key []byte, value []byte) *Entry {
 
 // pretvara iz Entry u niz bitova da bi mogli da zapisemo u fajlu
 func entryToBytes(e *Entry) []byte {
-	bytes := make([]byte, 29+binary.BigEndian.Uint64(e.key_size)+binary.BigEndian.Uint64(e.value_size))
+	bytes := make([]byte, 0)
+	bytes = append(bytes, e.crc...)
 	bytes = append(bytes, e.timestamp...)
 	bytes = append(bytes, e.tombstone...)
 	bytes = append(bytes, e.key_size...)
@@ -98,7 +99,7 @@ func entryToBytes(e *Entry) []byte {
 	return bytes
 }
 
-// pretvara iz niza bytova u ENtry da bi mogli da procitamo vrednosti iz fajla
+// pretvara iz niza bytova u Entry da bi mogli da procitamo vrednosti iz fajla
 func bytesToEntry(bytes []byte) *Entry {
 	e := new(Entry)
 	e.crc = bytes[CRC_START:TIMESTAMP_START]
@@ -192,7 +193,9 @@ func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
 // zapisuje direktno entry
 func (wal *WriteAheadLog) writeEntry(entry *Entry) {
 	//otvaramo file u append only rezimu
+	wal.current_offset--
 	filename := wal.generateSegmentFilename()
+	wal.current_offset++
 	file, err := os.OpenFile(filename, os.O_APPEND, 0600)
 	if err != nil {
 		log.Fatal(err)
@@ -221,16 +224,15 @@ func readEntry(file *os.File) *Entry {
 	//procitamo velicine kljuca i vrednosti
 	key_size := bytes[KEY_SIZE_START:VALUE_SIZE_START]
 	value_size := bytes[VALUE_SIZE_START:]
-
 	//procitamo kljuc
-	key := make([]byte, binary.BigEndian.Uint64(key_size))
+	key := make([]byte, int(binary.BigEndian.Uint64(key_size)))
 	_, err = file.Read(key)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//procitamo vrednost
-	value := make([]byte, binary.BigEndian.Uint64(value_size))
+	value := make([]byte, int(binary.BigEndian.Uint64(value_size)))
 	_, err = file.Read(value)
 	if err != nil {
 		log.Fatal(err)
@@ -278,8 +280,13 @@ func (wal *WriteAheadLog) readAllEntries(filename string) {
 func main() {
 	wal := newWriteAheadLog("test")
 	for i := 0; i < 11; i++ {
-		e := wal.newEntry([]byte(strconv.Itoa(i)), []byte("majmun"))
+		e := wal.newEntry([]byte(strconv.Itoa(i*125)), []byte("mjm"))
 		e.print()
 	}
+	entry := wal.newEntry([]byte("789"), []byte("majmun"))
+	entry.key = []byte("456")
+	entry.value = []byte("mijmun")
+
+	wal.writeEntry(entry)
 	wal.readAllEntries("test/wal_00000.log")
 }
