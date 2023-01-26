@@ -48,6 +48,7 @@ type WriteAheadLog struct {
 	buffer_size     uint
 	directory       string
 	current_offset  uint64
+	low_water_mark  uint64
 }
 
 // struktura za svaki pojedinac zapis
@@ -64,15 +65,20 @@ type Entry struct {
 // Konstruktor
 func (wal *WriteAheadLog) newEntry(key []byte, value []byte) *Entry {
 	e := new(Entry)
+
+	//izracunaj duzinu kljuca i vrednosti
 	e.key_size = make([]byte, 8)
 	e.value_size = make([]byte, 8)
 	binary.BigEndian.PutUint64(e.key_size, uint64(int64(len(key))))
 	binary.BigEndian.PutUint64(e.value_size, uint64(int64(len(value))))
+
 	e.key = key
 	e.value = value
 	e.timestamp = make([]byte, 8)
 	binary.BigEndian.PutUint64(e.timestamp, uint64(time.Now().Unix()))
 	e.tombstone = make([]byte, 1)
+
+	//ubaci sve u niz bajtova da bi napravio crc
 	bytes := make([]byte, 0)
 	bytes = append(bytes, e.timestamp...)
 	bytes = append(bytes, e.tombstone...)
@@ -112,6 +118,7 @@ func bytesToEntry(bytes []byte) *Entry {
 	return e
 }
 
+// inicijalizuje Write Ahead Log i ukoliko logovi vec postoje povecava offset do posle poslednjeg loga
 func newWriteAheadLog(directory string) *WriteAheadLog {
 	//ukoliko ne postoji napravi direktorijum
 	_, err := os.Stat(directory)
@@ -124,6 +131,7 @@ func newWriteAheadLog(directory string) *WriteAheadLog {
 	wal := new(WriteAheadLog)
 	wal.directory = directory
 	wal.current_offset = 0
+	//ukoliko postoji vec direktorijum sa logovima azuriramo offset
 	for {
 		filename := wal.generateSegmentFilename()
 		_, err := os.Stat(filename)
@@ -132,20 +140,24 @@ func newWriteAheadLog(directory string) *WriteAheadLog {
 		}
 		wal.current_offset++
 	}
+
 	//zadajemo inicijalne vrednosti
-
 	wal.buffer = make([]byte, 0)
-
-	wal.buffer_capacity = 10
+	wal.low_water_mark = 100
+	wal.buffer_capacity = 100
 	wal.buffer_size = 0
 	return wal
 
 }
 
 // generise ime filea sa trenutnim offsetom
-func (wal *WriteAheadLog) generateSegmentFilename() string {
+func (wal *WriteAheadLog) generateSegmentFilename(offset ...uint64) string {
+	chosen_offset := wal.current_offset
+	if len(offset) > 0 {
+		chosen_offset = offset[0]
+	}
 	filename := wal.directory + "/wal_"
-	ustr := strconv.FormatUint(wal.current_offset, 10)
+	ustr := strconv.FormatUint(chosen_offset, 10)
 
 	//upotpunjava ime sa potrebnim nizom nula ukoliko ofset nije vec petocifren broj
 	for len(ustr) < 5 {
@@ -168,6 +180,23 @@ func (wal *WriteAheadLog) newWALFile() *os.File {
 	return file
 }
 
+// brise sve osim poslednjeg segmenta
+func (wal *WriteAheadLog) deleteOldSegments() {
+	wal.current_offset--
+	for offset := uint64(0); offset < wal.current_offset; offset++ {
+		err := os.Remove(wal.generateSegmentFilename(offset))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	//preimenuje poslednji log u prvi i vraca offset na svoje mesto
+	err := os.Rename(wal.generateSegmentFilename(wal.current_offset), wal.generateSegmentFilename(0))
+	if err != nil {
+		log.Fatal(err)
+	}
+	wal.current_offset = 1
+}
+
 // batch zapis
 func (wal *WriteAheadLog) writeBuffer() {
 	//kreira fajl sa narednim offsetom
@@ -180,14 +209,20 @@ func (wal *WriteAheadLog) writeBuffer() {
 	}
 	wal.buffer = make([]byte, 0)
 	wal.buffer_size = 0
+	file.Close()
 }
 
+// dodajemo entry u baffer, ukoliko je pun zapisuje buffer u segment
 func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
 	wal.buffer = append(wal.buffer, entryToBytes(entry)...)
 	wal.buffer_size++
 	if wal.buffer_size == wal.buffer_capacity {
 		wal.writeBuffer()
+		if wal.current_offset > wal.low_water_mark {
+			wal.deleteOldSegments()
+		}
 	}
+
 }
 
 // zapisuje direktno entry
@@ -208,9 +243,10 @@ func (wal *WriteAheadLog) writeEntry(entry *Entry) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	file.Close()
 }
 
-// TO DO
+// cita niz bitova i pretvara ih u klasu entity za dalju obradu
 func readEntry(file *os.File) *Entry {
 	//prvo procitamo do kljuca da bi videli koje su  velicine kljuc i vrednost
 	bytes := make([]byte, KEY_START)
@@ -246,6 +282,7 @@ func readEntry(file *os.File) *Entry {
 	return entry
 }
 
+// ispis pojedinacnog unosa
 func (entry *Entry) print() {
 	timestamp := binary.BigEndian.Uint64(entry.timestamp)
 	key_size := binary.BigEndian.Uint64(entry.key_size)
@@ -261,7 +298,8 @@ func (entry *Entry) print() {
 	println("---------------------------------------")
 }
 
-func (wal *WriteAheadLog) readAllEntries(filename string) {
+// cita pojedinacan segment
+func (wal *WriteAheadLog) readLog(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -274,12 +312,25 @@ func (wal *WriteAheadLog) readAllEntries(filename string) {
 		}
 		entry.print()
 	}
+	file.Close()
 
+}
+
+// cita hronoloskim redom sve segmente
+func (wal *WriteAheadLog) readAllLogs() {
+	offset := uint64(0)
+	for offset < wal.current_offset {
+		println("==========================================================")
+		println("Current offset: ", offset)
+		println("==========================================================")
+		wal.readLog(wal.generateSegmentFilename(offset))
+		offset++
+	}
 }
 
 func main() {
 	wal := newWriteAheadLog("test")
-	for i := 0; i < 11; i++ {
+	for i := 0; i < 101; i++ {
 		e := wal.newEntry([]byte(strconv.Itoa(i*125)), []byte("mjm"))
 		e.print()
 	}
@@ -288,5 +339,5 @@ func main() {
 	entry.value = []byte("mijmun")
 
 	wal.writeEntry(entry)
-	wal.readAllEntries("test/wal_00000.log")
+	wal.readAllLogs()
 }
