@@ -5,9 +5,14 @@ import (
 	"strings"
 )
 
+type Data struct {
+	value     []byte
+	tombstone bool
+}
+
 type BTreeNode struct {
-	keys     []uint //Kljucevi
-	values   map[uint][]byte
+	keys     []string //Kljucevi
+	values   map[string]*Data
 	children []*BTreeNode //Pokazivaci na decu
 	parent   *BTreeNode
 }
@@ -21,8 +26,8 @@ type BTree struct {
 
 func newBTreeNode(parent *BTreeNode) *BTreeNode {
 	bTreeNode := new(BTreeNode)
-	bTreeNode.keys = make([]uint, 0)
-	bTreeNode.values = make(map[uint][]byte)
+	bTreeNode.keys = make([]string, 0)
+	bTreeNode.values = make(map[string]*Data)
 	bTreeNode.children = make([]*BTreeNode, 0)
 	bTreeNode.parent = parent
 	return bTreeNode
@@ -39,7 +44,7 @@ func newBTree(m uint) *BTree {
 }
 
 // Nas bubblesort koji sortira uint
-func BubbleSort(keys []uint) []uint {
+func BubbleSort(keys []string) []string {
 	for i := 0; i < len(keys)-1; i++ {
 		for j := 0; j < len(keys)-i-1; j++ {
 			if keys[j] > keys[j+1] {
@@ -51,12 +56,12 @@ func BubbleSort(keys []uint) []uint {
 }
 
 // Brise element liste na datom indeksu
-func RemoveIndex(s []uint, index int) []uint {
+func RemoveIndex(s []string, index int) []string {
 	return append(s[:index], s[index+1:]...)
 }
 
 // Trazi cvor sa kljucem
-func (bTree *BTree) findNode(keyToFind uint) (bool, *BTreeNode) {
+func (bTree *BTree) findNode(keyToFind string) (bool, *BTreeNode) {
 	//Da ne puca ako je prazan koren
 	if bTree.root == nil {
 		return false, nil
@@ -65,10 +70,7 @@ func (bTree *BTree) findNode(keyToFind uint) (bool, *BTreeNode) {
 	currentNode := bTree.root //Pocinjemo od korena
 	for true {
 		numberOfKeys := len(currentNode.keys) //Broj kljuceva za pretragu
-		//Ukoliko nema kljuceva za pretragu
-		// if numberOfKeys == 0 {
-		// 	return false, currentNode
-		// }
+
 		//Iteriramo po kljucevima
 		for index, key := range currentNode.keys {
 			if key == keyToFind {
@@ -127,6 +129,7 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	if len(node.children) != 0 {
 		for _, child := range node.children[0 : middleIndex+1] {
 			leftNode.children = append(leftNode.children, child)
+			child.parent = leftNode
 		}
 	}
 
@@ -141,6 +144,7 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	if len(node.children) != 0 {
 		for _, child := range node.children[middleIndex+1:] {
 			rightNode.children = append(rightNode.children, child)
+			child.parent = rightNode
 		}
 	}
 
@@ -149,15 +153,22 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	parent.values[middleKey] = node.values[middleKey]
 	parent.keys = BubbleSort(parent.keys)
 
+	// //Brisem stari cvor
+	// delete(node.values, middleKey) //Brisemo value iz naseg cvora
+	// node.keys = RemoveIndex(node.keys, int(middleIndex))
+	// node.keys = BubbleSort(node.keys)
+
 	addedKeyIndex := 0
 	for index, k := range parent.keys {
 		if k == middleKey {
 			addedKeyIndex = index
+			break
 		}
 	}
 	//Pomeramo svu decu u desno
 	// parent.children = append(parent.children, nil) //zauzimamo mesto
-	for i := len(parent.children) - 2; i == addedKeyIndex; i++ {
+
+	for i := len(parent.children) - 2; i > addedKeyIndex; i-- {
 		parent.children[i+1] = parent.children[i]
 	}
 	//Dodajemo podeljene node-ove kao decu
@@ -174,55 +185,77 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 // false znaci da se rotira sa levim
 func (bTree *BTree) rotateNodes(node *BTreeNode, sibling *BTreeNode, isRight bool) {
 	if isRight {
-		//Najveceg iz roditelja spustamo
-		keyFromParent := node.parent.keys[len(node.parent.keys)-1]
-		sibling.keys = append(sibling.keys, keyFromParent)
-		sibling.values[keyFromParent] = node.parent.values[keyFromParent]
-		delete(node.parent.values, keyFromParent) //Brisemo value iz roditelja
-		sibling.keys = BubbleSort(sibling.keys)
-
 		//Najveceg iz naseg cvora dizemo
 		keyFromNode := node.keys[len(node.keys)-1]
-		node.parent.keys[len(node.parent.keys)-1] = keyFromNode //Prepisujemo preko starog
+
+		keyFromParent := ""
+		indexFromParent := 0
+		//Trazim kojeg iz roditeljskog spustam dole(prvog veceg)
+		for index, key := range node.parent.keys {
+			if key > keyFromNode {
+				keyFromParent = key
+				indexFromParent = int(index)
+				break
+			}
+		}
+
+		node.parent.keys[indexFromParent] = keyFromNode //Prepisujemo preko starog
 		node.parent.values[keyFromNode] = node.values[keyFromNode]
 		delete(node.values, keyFromNode) //Brisemo value iz naseg cvora
 		node.keys = RemoveIndex(node.keys, len(node.keys)-1)
 		node.parent.keys = BubbleSort(node.parent.keys)
-	} else {
-		//Najmanjeg iz roditelja spustamo
-		keyFromParent := node.parent.keys[0]
+
+		//Prvog najveceg iz roditelja spustamo
 		sibling.keys = append(sibling.keys, keyFromParent)
 		sibling.values[keyFromParent] = node.parent.values[keyFromParent]
 		delete(node.parent.values, keyFromParent) //Brisemo value iz roditelja
 		sibling.keys = BubbleSort(sibling.keys)
 
+	} else {
 		//Najmanjeg iz naseg cvora dizemo
 		keyFromNode := node.keys[0]
-		node.parent.keys[0] = keyFromNode //Prepisujemo preko starog
+
+		keyFromParent := ""
+		indexFromParent := 0
+		//Trazim kojeg iz roditeljskog spustam dole(prvog manjeg)
+		for index := len(node.parent.keys) - 1; index >= 0; index-- {
+			if node.parent.keys[index] < keyFromNode {
+				keyFromParent = node.parent.keys[index]
+				indexFromParent = int(index)
+				break
+			}
+		}
+
+		node.parent.keys[indexFromParent] = keyFromNode //Prepisujemo preko starog
 		node.parent.values[keyFromNode] = node.values[keyFromNode]
 		delete(node.values, keyFromNode) //Brisemo value iz naseg cvora
-		node.keys = RemoveIndex(node.keys, len(node.keys)-1)
+		node.keys = RemoveIndex(node.keys, 0)
 		node.parent.keys = BubbleSort(node.parent.keys)
+
+		//Prvog najmanjeg iz roditelja spustamo
+		sibling.keys = append(sibling.keys, keyFromParent)
+		sibling.values[keyFromParent] = node.parent.values[keyFromParent]
+		delete(node.parent.values, keyFromParent) //Brisemo value iz roditelja
+		sibling.keys = BubbleSort(sibling.keys)
 	}
 }
 
 // Ubacuje kljuc
-func (bTree *BTree) insertElem(key uint, val []byte) {
+func (bTree *BTree) insertElem(key string, val []byte, tombstone ...bool) {
+	data := new(Data)
+	data.value = val
+	data.tombstone = false
+	if len(tombstone) > 0 {
+		data.tombstone = tombstone[0]
+	}
 
 	//U slucaju da koren ne postoji
 	if bTree.root == nil {
 		bTree.root = newBTreeNode(nil) //Nema roditelja :(
 		bTree.root.keys = append(bTree.root.keys, key)
 		bTree.root.keys = BubbleSort(bTree.root.keys)
-		bTree.root.values[key] = val
+		bTree.root.values[key] = data
 		bTree.size++
-		return
-	} else if len(bTree.root.keys) == int(bTree.maxKeys) {
-		bTree.root.keys = append(bTree.root.keys, key)
-		bTree.root.keys = BubbleSort(bTree.root.keys)
-		bTree.root.values[key] = val
-		bTree.size++
-		bTree.splitNode(bTree.root)
 		return
 	}
 
@@ -230,61 +263,73 @@ func (bTree *BTree) insertElem(key uint, val []byte) {
 
 	//Ukoliko vec postoji ne dodajemo
 	if found {
-		fmt.Printf("Kljuc '%d' vec postoji u stablu", key)
+		fmt.Printf("Kljuc '%s' vec postoji u stablu\n", key)
 		return
 	}
 
 	//Dodamo element
 	node.keys = append(node.keys, key)
-	node.values[key] = val
+	node.values[key] = data
 	node.keys = BubbleSort(node.keys)
 	bTree.size++
 
 	//Ukoliko nema mesta u trenutnom cvoru
 	if len(node.keys) > int(bTree.maxKeys) {
-		siblings := node.parent.children
-		for index, child := range siblings {
-			//Trazim indeks trenutnog node-a
-			if child == node {
-				//Proveravam da li ima levog/desnog suseda
-				if len(siblings) == 1 {
-					break
-				} else if index == 0 {
-					rightSibling := siblings[index+1]
-					if len(rightSibling.keys) == int(bTree.maxKeys) {
+		if node.parent != nil {
+			siblings := node.parent.children
+			for index, child := range siblings {
+				//Trazim indeks trenutnog node-a
+				if child == node {
+					//Proveravam da li ima levog/desnog suseda
+					if len(siblings) == 1 {
 						break
-					}
-					//Rotacija...
-					bTree.rotateNodes(node, rightSibling, true)
-					return
-				} else if index == len(siblings)-1 {
-					leftSibling := siblings[index-1]
-					if len(leftSibling.keys) == int(bTree.maxKeys) {
-						break
-					}
-					//Rotacija...
-					bTree.rotateNodes(node, leftSibling, false)
-					return
-				} else {
-					leftSibling := siblings[index-1]
-					if len(leftSibling.keys) < int(bTree.maxKeys) {
-						//Rotacija
-						bTree.rotateNodes(node, leftSibling, false)
-						return
-					}
-					rightSibling := siblings[index+1]
-					if len(rightSibling.keys) < int(bTree.maxKeys) {
-						//Rotacija
+					} else if index == 0 {
+						rightSibling := siblings[index+1]
+						if len(rightSibling.keys) == int(bTree.maxKeys) {
+							break
+						}
+						//Rotacija...
 						bTree.rotateNodes(node, rightSibling, true)
 						return
+					} else if index == len(siblings)-1 {
+						leftSibling := siblings[index-1]
+						if len(leftSibling.keys) == int(bTree.maxKeys) {
+							break
+						}
+						//Rotacija...
+						bTree.rotateNodes(node, leftSibling, false)
+						return
+					} else {
+						leftSibling := siblings[index-1]
+						if len(leftSibling.keys) < int(bTree.maxKeys) {
+							//Rotacija
+							bTree.rotateNodes(node, leftSibling, false)
+							return
+						}
+						rightSibling := siblings[index+1]
+						if len(rightSibling.keys) < int(bTree.maxKeys) {
+							//Rotacija
+							bTree.rotateNodes(node, rightSibling, true)
+							return
+						}
+						break
 					}
-					break
 				}
 			}
 		}
+
 		//Ukoliko ne moze da rotira onda splituje
 		bTree.splitNode(node)
 	}
+}
+
+// Logicko brisanje - postavlja tombstone na true
+func (bTree *BTree) remove(key string) {
+	found, node := bTree.findNode(key)
+	if !found {
+		return
+	}
+	node.values[key].tombstone = true
 }
 
 // DEVIOUS LICK
@@ -294,18 +339,29 @@ func (t *BTree) printBTree() {
 	level := 0
 
 	for len(queue) > 0 {
+		fmt.Println("----------------------------------------")
+		fmt.Println("Level: ", level)
+		fmt.Println("----------------------------------------")
+
 		levelSize := len(queue)
 		for i := 0; i < levelSize; i++ {
 			current := queue[i]
 			fmt.Print(strings.Repeat("  ", level))
 			fmt.Print("Keys: ")
 			for _, key := range current.keys {
-				fmt.Print(key, " ")
+				if current.values[key].tombstone {
+					fmt.Print("(", key, ")", " ")
+				} else {
+					fmt.Print(key, " ")
+				}
 			}
 			fmt.Print(" | Children: ")
 			for _, child := range current.children {
 				queue = append(queue, child)
-				fmt.Print(child, " ")
+				fmt.Print(child.keys, " ")
+			}
+			if current.parent != nil {
+				fmt.Print(" | Parent: ", current.parent.keys)
 			}
 			fmt.Println()
 		}
