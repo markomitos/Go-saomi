@@ -13,7 +13,7 @@ type BloomFilter struct {
 }
 
 // Konstruktor
-func NewBloomFilter(expectedNumOfElem int, falsePositiveRate float64) *BloomFilter {
+func NewBloomFilter(expectedNumOfElem uint, falsePositiveRate float64) *BloomFilter {
 	blm := new(BloomFilter)
 	blm.m = CalculateM(expectedNumOfElem, falsePositiveRate)
 	blm.k = CalculateK(expectedNumOfElem, blm.m)
@@ -23,7 +23,7 @@ func NewBloomFilter(expectedNumOfElem int, falsePositiveRate float64) *BloomFilt
 	return blm
 }
 
-func AddToBloom(blm *BloomFilter, elem []byte) {
+func (blm *BloomFilter) AddToBloom(elem []byte) {
 	blm.n++
 	for _, fn := range blm.hashFuncs {
 		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.m)))
@@ -31,7 +31,7 @@ func AddToBloom(blm *BloomFilter, elem []byte) {
 	}
 }
 
-func IsInBloom(blm *BloomFilter, elem []byte) bool {
+func (blm *BloomFilter) IsInBloom(elem []byte) bool {
 	for _, fn := range blm.hashFuncs {
 		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.m)))
 		if blm.bitset[hashedValue] == false {

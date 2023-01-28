@@ -1,13 +1,13 @@
 package main
 
 import (
-	"example/bloom/bloomfilter"
 	"fmt"
+	"structures/bloom/bloomfilter"
 )
 
 func main() {
 	blm := bloomfilter.NewBloomFilter(10, 2)
-	bloomfilter.AddToBloom(blm, []byte("MAJMUN"))
-	bloomfilter.AddToBloom(blm, []byte("filadendron"))
-	fmt.Println(bloomfilter.IsInBloom(blm, []byte("faradon")))
+	blm.AddToBloom([]byte("MAJMUN"))
+	blm.AddToBloom([]byte("filadendron"))
+	fmt.Println(blm.IsInBloom([]byte("faradon")))
 }

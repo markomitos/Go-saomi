@@ -3,12 +3,9 @@ package b_tree
 import (
 	"fmt"
 	"strings"
+	. "structures/data"
+	"time"
 )
-
-type Data struct {
-	value     []byte
-	tombstone bool
-}
 
 type BTreeNode struct {
 	keys     []string //Kljucevi
@@ -243,10 +240,11 @@ func (bTree *BTree) rotateNodes(node *BTreeNode, sibling *BTreeNode, isRight boo
 // Ubacuje kljuc
 func (bTree *BTree) InsertElem(key string, val []byte, tombstone ...bool) {
 	data := new(Data)
-	data.value = val
-	data.tombstone = false
+	data.Value = val
+	data.Tombstone = false
+	data.Timestamp = uint64(time.Now().Unix())
 	if len(tombstone) > 0 {
-		data.tombstone = tombstone[0]
+		data.Tombstone = tombstone[0]
 	}
 
 	//U slucaju da koren ne postoji
@@ -329,7 +327,7 @@ func (bTree *BTree) Remove(key string) {
 	if !found {
 		return
 	}
-	node.values[key].tombstone = true
+	node.values[key].Tombstone = true
 }
 
 // DEVIOUS LICK
@@ -349,7 +347,7 @@ func (t *BTree) PrintBTree() {
 			fmt.Print(strings.Repeat("  ", level))
 			fmt.Print("Keys: ")
 			for _, key := range current.keys {
-				if current.values[key].tombstone {
+				if current.values[key].Tombstone {
 					fmt.Print("(", key, ")", " ")
 				} else {
 					fmt.Print(key, " ")
