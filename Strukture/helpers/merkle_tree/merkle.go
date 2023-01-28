@@ -71,7 +71,7 @@ func WriteFile(fileName string, rootNode Node) {
 	writer.Flush()
 }
 
-func makeMerkel(nodes []Node) MerkleRoot {
+func MakeMerkel(nodes []Node) MerkleRoot {
 
 	// Prolazi kroz nodove koristi pomocnu listu
 	// smanjuje je i kada dostigne velicinu 1 vraca root node
@@ -133,7 +133,7 @@ func main() {
 
 	//Ovo takodje odkomentarisemo kako bismo radili sa ulaznim podacima
 	//root_node := makeMerkel(nodes)
-	root_node := makeMerkel(nodes_pom)
+	root_node := MakeMerkel(nodes_pom)
 
 	WriteFile("metadata.txt", *root_node.root)
 
