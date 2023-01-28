@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	. "structures/bloom/bloomfilter"
+	. "structures/bloom/bloom"
 	. "structures/data"
 	. "structures/wal"
 )

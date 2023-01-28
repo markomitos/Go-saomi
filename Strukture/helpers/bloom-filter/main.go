@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"structures/bloom/bloom"
+	bloom "structures/bloom/bloom"
 )
 
 func main() {
