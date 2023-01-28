@@ -62,7 +62,7 @@ type Entry struct {
 	value      []byte
 }
 
-// Konstruktor
+// Konstruktor jednog unosa i automatski taj unos ubacuje u buffer
 func (wal *WriteAheadLog) NewEntry(key []byte, value []byte) *Entry {
 	e := new(Entry)
 
@@ -197,7 +197,7 @@ func (wal *WriteAheadLog) deleteOldSegments() {
 	wal.current_offset = 1
 }
 
-// batch zapis
+// batch zapis - zapisuje ceo buffer u segment sa sledecim offsetom
 func (wal *WriteAheadLog) WriteBuffer() {
 	//kreira fajl sa narednim offsetom
 	file := wal.newWALFile()
