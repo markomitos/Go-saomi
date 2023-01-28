@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"simhash/package/simhash"
 	"strings"
 )
 
@@ -41,14 +43,28 @@ func parseFileToWeightedMap(file string) map[string]int {
 }
 
 func main() {
-	mapa1 := parseFileToWeightedMap("D:\\GO\\Strukture\\helpers\\simhash\\tekst1.txt")
-	mapa2 := parseFileToWeightedMap("D:\\GO\\Strukture\\helpers\\simhash\\tekst2.txt")
-	mapa3 := parseFileToWeightedMap("D:\\GO\\Strukture\\helpers\\simhash\\tekst1.txt")
+	txt1, err1 := filepath.Abs("tekst1.txt")
+	if err1 != nil {
+		log.Fatal()
+	}
+	txt2, err2 := filepath.Abs("tekst2.txt")
+	if err2 != nil {
+		log.Fatal()
+	}
+	txt3, err3 := filepath.Abs("tekst3.txt")
+	if err3 != nil {
+		log.Fatal()
+	}
+
+	fmt.Println(txt1)
+	mapa1 := parseFileToWeightedMap(txt1)
+	mapa2 := parseFileToWeightedMap(txt2)
+	mapa3 := parseFileToWeightedMap(txt3)
 	fmt.Println(mapa1)
 
 	mapa3["ABOUT"]++
 
-	compare(hashText(mapa1), hashText(mapa2))
-	compare(hashText(mapa1), hashText(mapa3))
+	simhash.Compare(simhash.HashText(mapa1), simhash.HashText(mapa2))
+	simhash.Compare(simhash.HashText(mapa1), simhash.HashText(mapa3))
 
 }

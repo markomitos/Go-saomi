@@ -1,3 +1,3 @@
-module example/simhash
+module simhash/package
 
 go 1.19

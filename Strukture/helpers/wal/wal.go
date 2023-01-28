@@ -1,4 +1,4 @@
-package main
+package wal
 
 import (
 	"encoding/binary"
@@ -63,7 +63,7 @@ type Entry struct {
 }
 
 // Konstruktor
-func (wal *WriteAheadLog) newEntry(key []byte, value []byte) *Entry {
+func (wal *WriteAheadLog) NewEntry(key []byte, value []byte) *Entry {
 	e := new(Entry)
 
 	//izracunaj duzinu kljuca i vrednosti
@@ -119,7 +119,7 @@ func bytesToEntry(bytes []byte) *Entry {
 }
 
 // inicijalizuje Write Ahead Log i ukoliko logovi vec postoje povecava offset do posle poslednjeg loga
-func newWriteAheadLog(directory string) *WriteAheadLog {
+func NewWriteAheadLog(directory string) *WriteAheadLog {
 	//ukoliko ne postoji napravi direktorijum
 	_, err := os.Stat(directory)
 	if os.IsNotExist(err) {
@@ -198,7 +198,7 @@ func (wal *WriteAheadLog) deleteOldSegments() {
 }
 
 // batch zapis
-func (wal *WriteAheadLog) writeBuffer() {
+func (wal *WriteAheadLog) WriteBuffer() {
 	//kreira fajl sa narednim offsetom
 	file := wal.newWALFile()
 
@@ -217,7 +217,7 @@ func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
 	wal.buffer = append(wal.buffer, entryToBytes(entry)...)
 	wal.buffer_size++
 	if wal.buffer_size == wal.buffer_capacity {
-		wal.writeBuffer()
+		wal.WriteBuffer()
 		if wal.current_offset > wal.low_water_mark {
 			wal.deleteOldSegments()
 		}
@@ -226,7 +226,7 @@ func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
 }
 
 // zapisuje direktno entry
-func (wal *WriteAheadLog) writeEntry(entry *Entry) {
+func (wal *WriteAheadLog) WriteEntry(entry *Entry) {
 	//otvaramo file u append only rezimu
 	wal.current_offset--
 	filename := wal.generateSegmentFilename()
@@ -317,7 +317,7 @@ func (wal *WriteAheadLog) readLog(filename string) {
 }
 
 // cita hronoloskim redom sve segmente
-func (wal *WriteAheadLog) readAllLogs() {
+func (wal *WriteAheadLog) ReadAllLogs() {
 	offset := uint64(0)
 	for offset < wal.current_offset {
 		println("==========================================================")
@@ -329,15 +329,15 @@ func (wal *WriteAheadLog) readAllLogs() {
 }
 
 func main() {
-	wal := newWriteAheadLog("test")
+	wal := NewWriteAheadLog("test")
 	for i := 0; i < 101; i++ {
-		e := wal.newEntry([]byte(strconv.Itoa(i*125)), []byte("mjm"))
+		e := wal.NewEntry([]byte(strconv.Itoa(i*125)), []byte("mjm"))
 		e.print()
 	}
-	entry := wal.newEntry([]byte("789"), []byte("majmun"))
+	entry := wal.NewEntry([]byte("789"), []byte("majmun"))
 	entry.key = []byte("456")
 	entry.value = []byte("mijmun")
 
-	wal.writeEntry(entry)
-	wal.readAllLogs()
+	wal.WriteEntry(entry)
+	wal.ReadAllLogs()
 }

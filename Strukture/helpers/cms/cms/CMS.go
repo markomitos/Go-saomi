@@ -1,4 +1,4 @@
-package main
+package cms
 
 import (
 	"math"
@@ -13,7 +13,7 @@ type CountMinSketch struct {
 	hashFuncs  []HashWithSeed
 }
 
-func newCountMinSketch(epsilon float64, delta float64) *CountMinSketch {
+func NewCountMinSketch(epsilon float64, delta float64) *CountMinSketch {
 	cms := new(CountMinSketch)
 	cms.k = CalculateK(delta)
 	cms.m = CalculateM(epsilon)
@@ -27,14 +27,14 @@ func newCountMinSketch(epsilon float64, delta float64) *CountMinSketch {
 	return cms
 }
 
-func addToCms(cms *CountMinSketch, elem []byte) {
+func AddToCms(cms *CountMinSketch, elem []byte) {
 	for i, fn := range cms.hashFuncs {
 		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(cms.m)))
 		cms.valueTable[i][hashedValue]++
 	}
 }
 
-func checkFrequencyInCms(cms *CountMinSketch, elem []byte) uint {
+func CheckFrequencyInCms(cms *CountMinSketch, elem []byte) uint {
 	//Pomocni slice pomocu kojeg racunam min (sastoji se od svih vrednosti)
 	arr := make([]uint, cms.k)
 	for i, fn := range cms.hashFuncs {

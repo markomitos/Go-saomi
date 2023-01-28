@@ -1,11 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"example/bloom/bloomfilter"
+	"fmt"
+)
 
 func main() {
-	blm := newBloomFilter(10, 2)
-	addToBloom(blm, []byte("MAJMUN"))
-	addToBloom(blm, []byte("filadendron"))
-	fmt.Println(isInBloom(blm, []byte("faradon")))
-	fmt.Println(blm.bitset)
+	blm := bloomfilter.NewBloomFilter(10, 2)
+	bloomfilter.AddToBloom(blm, []byte("MAJMUN"))
+	bloomfilter.AddToBloom(blm, []byte("filadendron"))
+	fmt.Println(bloomfilter.IsInBloom(blm, []byte("faradon")))
 }

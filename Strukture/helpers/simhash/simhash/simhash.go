@@ -1,4 +1,4 @@
-package main
+package simhash
 
 import (
 	"crypto/md5"
@@ -19,7 +19,7 @@ func ToBinary(s string) string {
 	return res
 }
 
-func hashText(weightedMap map[string]int) []int {
+func HashText(weightedMap map[string]int) []int {
 	//Hash i konvertovanje u binarno
 	hashedMap := make(map[string]string)
 	for i, _ := range weightedMap {
@@ -61,7 +61,7 @@ func hashText(weightedMap map[string]int) []int {
 }
 
 // Ovo treba jos popraviti
-func compare(a []int, b []int) int {
+func Compare(a []int, b []int) int {
 	result := 0
 	for i := 0; i < 256; i++ {
 		if a[i] != b[i] {

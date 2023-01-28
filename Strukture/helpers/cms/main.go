@@ -1,19 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"example/cms/cms"
+	"fmt"
+)
 
 func main() {
-	cms := newCountMinSketch(0.1, 0.9)
-	addToCms(cms, []byte("majmun"))
-	addToCms(cms, []byte("majmun"))
-	addToCms(cms, []byte("majmun"))
-	addToCms(cms, []byte("banana"))
-	addToCms(cms, []byte("drvo"))
-	addToCms(cms, []byte("kokos"))
-	addToCms(cms, []byte("kokos"))
-	fmt.Println(cms.valueTable)
+	cmsA := cms.NewCountMinSketch(0.1, 0.9)
+	cms.AddToCms(cmsA, []byte("majmun"))
+	cms.AddToCms(cmsA, []byte("majmun"))
+	cms.AddToCms(cmsA, []byte("majmun"))
+	cms.AddToCms(cmsA, []byte("banana"))
+	cms.AddToCms(cmsA, []byte("drvo"))
+	cms.AddToCms(cmsA, []byte("kokos"))
+	cms.AddToCms(cmsA, []byte("kokos"))
 
-	fmt.Println(checkFrequencyInCms(cms, []byte("majmun")))
-	fmt.Println(checkFrequencyInCms(cms, []byte("drvo")))
+	fmt.Println(cms.CheckFrequencyInCms(cmsA, []byte("majmun")))
+	fmt.Println(cms.CheckFrequencyInCms(cmsA, []byte("drvo")))
 
 }

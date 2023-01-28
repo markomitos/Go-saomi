@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"strukture/hll/hll"
 )
 
 func main() {
-	hll, err := newHLL(10)
+	hllA, err := hll.NewHLL(10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -16,26 +17,25 @@ func main() {
 
 	// for i := 0; i < 2000; i++ {
 	// 	str := "masfasfg1245sgk" + "as" + strconv.Itoa(i)
-	// 	hll.addToHLL([]byte(str))
+	// 	hll.AddToHLL([]byte(str))
 	// }
 
-	// addToHLL(hll, []byte(bs))
-	hll.addToHLL("monke")
+	// AddToHLL(hll, []byte(bs))
+	hllA.AddToHLL("monke")
 	// fmt.Println(hll.reg)
-	hll.addToHLL("banan")
+	hllA.AddToHLL("banan")
 	// fmt.Println(hll.reg)
-	hll.addToHLL("ap45ple")
+	hllA.AddToHLL("ap45ple")
 	// fmt.Println(hll.reg)
-	hll.addToHLL("ora78nge")
+	hllA.AddToHLL("ora78nge")
 	// fmt.Println(hll.reg)
-	hll.addToHLL("cucum1245ber")
+	hllA.AddToHLL("cucum1245ber")
 	// fmt.Println(hll.reg)
-	hll.addToHLL("2778")
-	hll.addToHLL("48049894811984")
-	hll.addToHLL("7/91*/")
-	hll.addToHLL("71967678/")
-	fmt.Println(hll.reg)
+	hllA.AddToHLL("2778")
+	hllA.AddToHLL("48049894811984")
+	hllA.AddToHLL("7/91*/")
+	hllA.AddToHLL("71967678/")
 
-	fmt.Println(hll.Estimate())
+	fmt.Println(hllA.Estimate())
 
 }
