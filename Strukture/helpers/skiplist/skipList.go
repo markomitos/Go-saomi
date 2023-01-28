@@ -236,7 +236,6 @@ func main() {
 	// s.print()
 	// s.put("a", []byte("tigar"))
 	// s.put("nm", []byte("tigar"))
-	// s.put("daf", []byte("tigar"))
 	// fmt.Println(s.height)
 	// s.print()
 
