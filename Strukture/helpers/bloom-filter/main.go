@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"structures/bloom/bloomfilter"
+	"structures/bloom/bloom"
 )
 
 func main() {
-	blm := bloomfilter.NewBloomFilter(10, 2)
+	blm := bloom.NewBloomFilter(10, 2)
 	blm.AddToBloom([]byte("MAJMUN"))
 	blm.AddToBloom([]byte("filadendron"))
 	fmt.Println(blm.IsInBloom([]byte("faradon")))
