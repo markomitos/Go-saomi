@@ -16,9 +16,11 @@ type SkipList struct {
 
 type SkipListNode struct {
 	//key uint da bi bilo isto kao kod B_tree
-	key   string
-	value []byte
-	next  []*SkipListNode
+	key       string
+	value     []byte
+	timestamp []byte
+	tombstone bool
+	next      []*SkipListNode
 }
 
 func (s *SkipList) roll() int {
@@ -39,7 +41,7 @@ func (s *SkipList) roll() int {
 	return level
 }
 
-func newSkipList(maxh int) *SkipList {
+func NewSkipList(maxh int) *SkipList {
 	skipList := new(SkipList)
 	skipList.maxHeight = maxh
 	skipList.height = 0
@@ -95,7 +97,7 @@ func (s *SkipList) updateNodePointers(node *SkipListNode, minHeight int) {
 	}
 }
 
-func (s *SkipList) put(key string, value []byte) {
+func (s *SkipList) Put(key string, value []byte, timestamp []byte) {
 	node, found := s.find(key)
 	//update ako ga je nasao
 	if found {
@@ -104,9 +106,11 @@ func (s *SkipList) put(key string, value []byte) {
 		//Pravimo nov node
 		level := s.roll()
 		newNode := &SkipListNode{
-			key:   key,
-			value: value,
-			next:  make([]*SkipListNode, level),
+			key:       key,
+			value:     value,
+			timestamp: timestamp,
+			tombstone: false,
+			next:      make([]*SkipListNode, level),
 		}
 
 		//Prevezujemo pokazivace do visine pronadjenog node-a
@@ -133,7 +137,7 @@ func (s *SkipList) updateHeight() {
 	}
 }
 
-func (s *SkipList) remove(key string) {
+func (s *SkipList) Remove(key string) {
 	node, found := s.find(key)
 	currentNode := s.head
 	if found {
@@ -168,7 +172,20 @@ func (s *SkipList) remove(key string) {
 // 	fmt.Println("-------------------------------------------------------------")
 // }
 
-func (s *SkipList) print() {
+// uzima sve podatke u sortiranom redosledu
+func (s *SkipList) GetAllNodes() map[string][]byte {
+	var nodeList = make(map[string][]byte)
+	currentNode := s.head
+	for currentNode.next[0] != nil {
+		next := currentNode.next[0]
+		nodeList[next.key] = next.value
+		currentNode = next
+	}
+
+	return nodeList
+}
+
+func (s *SkipList) Print() {
 	fmt.Println(strings.Repeat("_", 100))
 	fmt.Println()
 	currentNode := s.head.next[0]
@@ -197,22 +214,22 @@ func (s *SkipList) print() {
 }
 
 func main() {
-	s := newSkipList(10)
-	s.put("i", []byte("majmun"))
-	s.put("c", []byte("majmun"))
-	s.put("e", []byte("majmun"))
-	s.put("d", []byte("majmun"))
-	s.put("f", []byte("majmun"))
-	s.put("g", []byte("majmun"))
-	s.put("s", []byte("majmun"))
-	s.put("q", []byte("majmun"))
-	s.put("r", []byte("majmun"))
-	s.put("t", []byte("majmun"))
-	s.put("j", []byte("majmun"))
-	s.put("l", []byte("majmun"))
-	s.put("p", []byte("majmun"))
-	s.put("o", []byte("majmun"))
-	s.print()
+	s := NewSkipList(10)
+	s.Put("i", []byte("majmun"), []byte("vreme"))
+	s.Put("c", []byte("majmun"), []byte("vreme"))
+	s.Put("e", []byte("majmun"), []byte("vreme"))
+	s.Put("d", []byte("majmun"), []byte("vreme"))
+	s.Put("f", []byte("majmun"), []byte("vreme"))
+	s.Put("g", []byte("majmun"), []byte("vreme"))
+	s.Put("s", []byte("majmun"), []byte("vreme"))
+	s.Put("q", []byte("majmun"), []byte("vreme"))
+	s.Put("r", []byte("majmun"), []byte("vreme"))
+	s.Put("t", []byte("majmun"), []byte("vreme"))
+	s.Put("j", []byte("majmun"), []byte("vreme"))
+	s.Put("l", []byte("majmun"), []byte("vreme"))
+	s.Put("p", []byte("majmun"), []byte("vreme"))
+	s.Put("o", []byte("majmun"), []byte("vreme"))
+	s.Print()
 	// s.remove("b")
 	// s.print()
 	// s.remove("g")
