@@ -16,7 +16,7 @@ import (
    +---------------+-----------------+---------------+---------------+-----------------+-...-+--...--+
    CRC = 32bit hash computed over the payload using CRC
    Key Size = Length of the Key data
-   Tombstone = If this record was deleted and has a value
+   Tombstone = If this record was deleted and has a Value
    Value Size = Length of the Value data
    Key = Key data
    Value = Value data
@@ -53,68 +53,68 @@ type WriteAheadLog struct {
 
 // struktura za svaki pojedinac zapis
 type Entry struct {
-	crc        []byte
-	timestamp  []byte
-	tombstone  []byte
-	key_size   []byte
-	value_size []byte
-	key        []byte
-	value      []byte
+	Crc        []byte
+	Timestamp  []byte
+	Tombstone  []byte
+	Key_size   []byte
+	Value_size []byte
+	Key        []byte
+	Value      []byte
 }
 
 // Konstruktor jednog unosa i automatski taj unos ubacuje u buffer
-func (wal *WriteAheadLog) NewEntry(key []byte, value []byte) *Entry {
+func (wal *WriteAheadLog) NewEntry(Key []byte, Value []byte) *Entry {
 	e := new(Entry)
 
 	//izracunaj duzinu kljuca i vrednosti
-	e.key_size = make([]byte, 8)
-	e.value_size = make([]byte, 8)
-	binary.BigEndian.PutUint64(e.key_size, uint64(int64(len(key))))
-	binary.BigEndian.PutUint64(e.value_size, uint64(int64(len(value))))
+	e.Key_size = make([]byte, 8)
+	e.Value_size = make([]byte, 8)
+	binary.BigEndian.PutUint64(e.Key_size, uint64(int64(len(Key))))
+	binary.BigEndian.PutUint64(e.Value_size, uint64(int64(len(Value))))
 
-	e.key = key
-	e.value = value
-	e.timestamp = make([]byte, 8)
-	binary.BigEndian.PutUint64(e.timestamp, uint64(time.Now().Unix()))
-	e.tombstone = make([]byte, 1)
+	e.Key = Key
+	e.Value = Value
+	e.Timestamp = make([]byte, 8)
+	binary.BigEndian.PutUint64(e.Timestamp, uint64(time.Now().Unix()))
+	e.Tombstone = make([]byte, 1)
 
-	//ubaci sve u niz bajtova da bi napravio crc
+	//ubaci sve u niz bajtova da bi napravio Crc
 	bytes := make([]byte, 0)
-	bytes = append(bytes, e.timestamp...)
-	bytes = append(bytes, e.tombstone...)
-	bytes = append(bytes, e.key_size...)
-	bytes = append(bytes, e.value_size...)
-	bytes = append(bytes, e.key...)
-	bytes = append(bytes, e.value...)
-	e.crc = make([]byte, 4)
-	binary.BigEndian.PutUint32(e.crc, uint32(CRC32(bytes)))
+	bytes = append(bytes, e.Timestamp...)
+	bytes = append(bytes, e.Tombstone...)
+	bytes = append(bytes, e.Key_size...)
+	bytes = append(bytes, e.Value_size...)
+	bytes = append(bytes, e.Key...)
+	bytes = append(bytes, e.Value...)
+	e.Crc = make([]byte, 4)
+	binary.BigEndian.PutUint32(e.Crc, uint32(CRC32(bytes)))
 	wal.addEntryToBuffer(e)
 	return e
 }
 
 // pretvara iz Entry u niz bitova da bi mogli da zapisemo u fajlu
-func entryToBytes(e *Entry) []byte {
+func EntryToBytes(e *Entry) []byte {
 	bytes := make([]byte, 0)
-	bytes = append(bytes, e.crc...)
-	bytes = append(bytes, e.timestamp...)
-	bytes = append(bytes, e.tombstone...)
-	bytes = append(bytes, e.key_size...)
-	bytes = append(bytes, e.value_size...)
-	bytes = append(bytes, e.key...)
-	bytes = append(bytes, e.value...)
+	bytes = append(bytes, e.Crc...)
+	bytes = append(bytes, e.Timestamp...)
+	bytes = append(bytes, e.Tombstone...)
+	bytes = append(bytes, e.Key_size...)
+	bytes = append(bytes, e.Value_size...)
+	bytes = append(bytes, e.Key...)
+	bytes = append(bytes, e.Value...)
 	return bytes
 }
 
 // pretvara iz niza bytova u Entry da bi mogli da procitamo vrednosti iz fajla
-func bytesToEntry(bytes []byte) *Entry {
+func BytesToEntry(bytes []byte) *Entry {
 	e := new(Entry)
-	e.crc = bytes[CRC_START:TIMESTAMP_START]
-	e.timestamp = bytes[TIMESTAMP_START:TOMBSTONE_START]
-	e.tombstone = bytes[TOMBSTONE_START:KEY_SIZE_START]
-	e.key_size = bytes[KEY_SIZE_START:VALUE_SIZE_START]
-	e.value_size = bytes[VALUE_SIZE_START:KEY_START]
-	e.key = bytes[KEY_START : KEY_START+binary.BigEndian.Uint64(e.key_size)]
-	e.value = bytes[KEY_START+binary.BigEndian.Uint64(e.key_size) : KEY_START+binary.BigEndian.Uint64(e.key_size)+binary.BigEndian.Uint64(e.value_size)]
+	e.Crc = bytes[CRC_START:TIMESTAMP_START]
+	e.Timestamp = bytes[TIMESTAMP_START:TOMBSTONE_START]
+	e.Tombstone = bytes[TOMBSTONE_START:KEY_SIZE_START]
+	e.Key_size = bytes[KEY_SIZE_START:VALUE_SIZE_START]
+	e.Value_size = bytes[VALUE_SIZE_START:KEY_START]
+	e.Key = bytes[KEY_START : KEY_START+binary.BigEndian.Uint64(e.Key_size)]
+	e.Value = bytes[KEY_START+binary.BigEndian.Uint64(e.Key_size) : KEY_START+binary.BigEndian.Uint64(e.Key_size)+binary.BigEndian.Uint64(e.Value_size)]
 	return e
 }
 
@@ -214,7 +214,7 @@ func (wal *WriteAheadLog) WriteBuffer() {
 
 // dodajemo entry u baffer, ukoliko je pun zapisuje buffer u segment
 func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
-	wal.buffer = append(wal.buffer, entryToBytes(entry)...)
+	wal.buffer = append(wal.buffer, EntryToBytes(entry)...)
 	wal.buffer_size++
 	if wal.buffer_size == wal.buffer_capacity {
 		wal.WriteBuffer()
@@ -239,7 +239,7 @@ func (wal *WriteAheadLog) WriteEntry(entry *Entry) {
 	defer file.Close()
 
 	//zapisujemo entry kao niz bytova
-	_, err = file.Write(entryToBytes(entry))
+	_, err = file.Write(EntryToBytes(entry))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -247,7 +247,7 @@ func (wal *WriteAheadLog) WriteEntry(entry *Entry) {
 }
 
 // cita niz bitova i pretvara ih u klasu entity za dalju obradu
-func readEntry(file *os.File) *Entry {
+func ReadEntry(file *os.File) *Entry {
 	//prvo procitamo do kljuca da bi videli koje su  velicine kljuc i vrednost
 	bytes := make([]byte, KEY_START)
 	_, err := file.Read(bytes)
@@ -258,43 +258,43 @@ func readEntry(file *os.File) *Entry {
 		log.Fatal(err)
 	}
 	//procitamo velicine kljuca i vrednosti
-	key_size := bytes[KEY_SIZE_START:VALUE_SIZE_START]
-	value_size := bytes[VALUE_SIZE_START:]
+	Key_size := bytes[KEY_SIZE_START:VALUE_SIZE_START]
+	Value_size := bytes[VALUE_SIZE_START:]
 	//procitamo kljuc
-	key := make([]byte, int(binary.BigEndian.Uint64(key_size)))
-	_, err = file.Read(key)
+	Key := make([]byte, int(binary.BigEndian.Uint64(Key_size)))
+	_, err = file.Read(Key)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//procitamo vrednost
-	value := make([]byte, int(binary.BigEndian.Uint64(value_size)))
-	_, err = file.Read(value)
+	Value := make([]byte, int(binary.BigEndian.Uint64(Value_size)))
+	_, err = file.Read(Value)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bytes = append(bytes, key...)
-	bytes = append(bytes, value...)
+	bytes = append(bytes, Key...)
+	bytes = append(bytes, Value...)
 
-	entry := bytesToEntry(bytes)
+	entry := BytesToEntry(bytes)
 
 	return entry
 }
 
 // ispis pojedinacnog unosa
 func (entry *Entry) print() {
-	timestamp := binary.BigEndian.Uint64(entry.timestamp)
-	key_size := binary.BigEndian.Uint64(entry.key_size)
-	value_size := binary.BigEndian.Uint64(entry.value_size)
+	Timestamp := binary.BigEndian.Uint64(entry.Timestamp)
+	Key_size := binary.BigEndian.Uint64(entry.Key_size)
+	Value_size := binary.BigEndian.Uint64(entry.Value_size)
 	println("Entry: ")
-	println("CRC: ", entry.crc)
-	println("Timestamp: ", timestamp)
-	println("Tombstone: ", entry.tombstone)
-	println("Key size: ", key_size)
-	println("Value size: ", value_size)
-	println("Key: ", string(entry.key))
-	println("Value: ", string(entry.value))
+	println("CRC: ", entry.Crc)
+	println("Timestamp: ", Timestamp)
+	println("Tombstone: ", entry.Tombstone)
+	println("Key size: ", Key_size)
+	println("Value size: ", Value_size)
+	println("Key: ", string(entry.Key))
+	println("Value: ", string(entry.Value))
 	println("---------------------------------------")
 }
 
@@ -306,7 +306,7 @@ func (wal *WriteAheadLog) readLog(filename string) {
 	}
 
 	for {
-		entry := readEntry(file)
+		entry := ReadEntry(file)
 		if entry == nil {
 			break
 		}
@@ -335,8 +335,8 @@ func main() {
 		e.print()
 	}
 	entry := wal.NewEntry([]byte("789"), []byte("majmun"))
-	entry.key = []byte("456")
-	entry.value = []byte("mijmun")
+	entry.Key = []byte("456")
+	entry.Value = []byte("mijmun")
 
 	wal.WriteEntry(entry)
 	wal.ReadAllLogs()
