@@ -127,7 +127,11 @@ func ByteToData(file *os.File, offset uint64) (string, *Data) {
 	if entry.Tombstone[0] == byte(uint8(1)) {
 		tombstone = true
 	}
-	timestamp := entry.Timestamp
+	timestamp := binary.BigEndian.Uint64(entry.Timestamp)
+	data := newData(entry.Value, tombstone, timestamp)
+	key := string(entry.Value)
+	return key, data
+
 }
 
 // Iterira se kroz string kljuceve i ubacuje u:
