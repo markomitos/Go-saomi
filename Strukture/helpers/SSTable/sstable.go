@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	. "project/gosaomi/bloom"
 	. "project/gosaomi/dataType"
+	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/wal"
 )
 
@@ -32,20 +33,48 @@ type SSTable struct {
 	intervalSize uint
 	directory    string
 	bloomFilter  *BloomFilter
-	summary      *Summary
 }
 
-// Konstruktor
+// ---------------- Konstruktor i inicijalizacija ----------------
+
 // size - ocekivani broj elemenata (velinica memtabele)
 // directory - naziv direktorijuma
 func NewSSTable(size uint32, directory string) *SSTable {
 	sstable := new(SSTable)
 	sstable.intervalSize = INTERVAL
 	sstable.directory = directory
-	sstable.bloomFilter = NewBloomFilter(size, FALSE_POSITIVE_RATE)
-	sstable.summary = new(Summary)
+
+	_, err := os.Stat("files/sstable/" + sstable.directory)
+	if os.IsNotExist(err) {
+		sstable.bloomFilter = NewBloomFilter(size, FALSE_POSITIVE_RATE)
+	} else {
+		sstable.LoadSSTable()
+	}
 
 	return sstable
+}
+
+// Otvara trazenu datoteku od sstabele
+func (sstable *SSTable) OpenFile(filename string) *os.File {
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	file, err := os.Open(path + "/" + filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return file
+}
+
+// Ucitava podatke ukoliko vec postoji sstabela
+func (sstable *SSTable) LoadSSTable() {
+	//Ucitavamo bloomfilter
+	filterFile := sstable.OpenFile("filter.bin")
+	sstable.bloomFilter = byteToBloomFilter(filterFile)
+	filterFile.Close()
 }
 
 // ------------- PAKOVANJE -------------
@@ -342,8 +371,8 @@ func byteToBloomFilter(file *os.File) *BloomFilter {
 	return blm
 }
 
-// Vraca pokazivace na kreirane fajlove(summary,index,data)
-func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
+// Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
+func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File, *os.File) {
 	//kreiramo novi direktorijum
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
@@ -381,16 +410,19 @@ func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
 		log.Fatal(err6)
 	}
 
-	return summary, index, data, filter
+	metadata, err7 := os.Create(path + "/metadata.txt")
+	if err7 != nil {
+		log.Fatal(err7)
+	}
+
+	return summary, index, data, filter, metadata
 }
 
 // Iterira se kroz string kljuceve i ubacuje u:
 // Bloomfilter
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTable) Flush(keys []string, values []*Data) {
-	//TO DO: dodati merkle stablo (metadata)
-
-	summaryFile, indexFile, dataFile, filterFile := sstable.makeFiles()
+	summaryFile, indexFile, dataFile, filterFile, metadataFile := sstable.makeFiles()
 	summary := new(Summary)
 	summary.firstKey = keys[0]
 	summary.lastKey = keys[len(keys)-1]
@@ -399,11 +431,19 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	offsetIndex := uint64(0) //offset ka indeksu(koristi se u summary)
 	offsetData := uint64(0)  //offset ka disku(koristi se u indeks tabeli)
 
+	nodes := make([]*merkle.Node, 0) //
+
 	intervalCounter := uint(sstable.intervalSize) //Kada dostigne postavljeni interval zapisuje novi offset indeksnog intervala
 	for i := 0; i < len(keys); i++ {
 		index := new(Index) //Pomocna struktura (menja se u svakoj iteraciji)
+
 		//Dodajemo u bloomFilter
 		sstable.bloomFilter.AddToBloom([]byte(keys[i]))
+
+		//Dodajemo u merkle
+		node := new(merkle.Node)
+		node.Data = dataToByte(keys[i], values[i])
+		nodes = append(nodes, node)
 
 		//Upisujemo trenutni podatak u data tabelu
 		dataLen, err1 := dataFile.Write(dataToByte(keys[i], values[i]))
@@ -443,24 +483,22 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	//Upis u bloomfilter fajl
 	filterFile.Write(bloomFilterToByte(sstable.bloomFilter))
 
+	//Upis u metadata fajl
+	merkleRoot := merkle.MakeMerkel(nodes)
+	merkle.WriteFile(metadataFile, merkleRoot.Root)
+
 	//Zatvaranje fajlova
 	summaryFile.Close()
 	indexFile.Close()
 	dataFile.Close()
 	filterFile.Close()
+	metadataFile.Close()
 }
 
-// ------------ PRINTOVANJE --------------
-func (sstable *SSTable) ReadData() {
-	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
-	if err2 != nil {
-		log.Fatal(err2)
-	}
+// ------------ PRINTOVANJE ------------
 
-	file, err := os.Open(path + "/data.bin")
-	if err != nil {
-		log.Fatal(err)
-	}
+func (sstable *SSTable) ReadData() {
+	file := sstable.OpenFile("data.bin")
 
 	for {
 		entry := ReadEntry(file)
@@ -473,15 +511,7 @@ func (sstable *SSTable) ReadData() {
 }
 
 func (sstable *SSTable) ReadIndex() {
-	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-
-	file, err := os.Open(path + "/index.bin")
-	if err != nil {
-		log.Fatal(err)
-	}
+	file := sstable.OpenFile("index.bin")
 
 	for {
 		index := byteToIndex(file)
@@ -493,36 +523,25 @@ func (sstable *SSTable) ReadIndex() {
 	file.Close()
 }
 
-func (sstable *SSTable) ReadSummary() {
-	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-
-	file, err := os.Open(path + "/summary.bin")
-	if err != nil {
-		log.Fatal(err)
-	}
+func (sstable *SSTable) ReadSummary() *Summary {
+	file := sstable.OpenFile("summary.bin")
 
 	summary := byteToSummary(file)
-	fmt.Println("First key: ", summary.firstKey)
-	fmt.Println("Last key: ", summary.lastKey)
-	for i := 0; i < len(summary.intervals); i++ {
-		fmt.Println(summary.intervals[i])
-	}
+
+	//U SLUCAJU DA NAM TREBA ISPIS
+	// fmt.Println("First key: ", summary.firstKey)
+	// fmt.Println("Last key: ", summary.lastKey)
+	// for i := 0; i < len(summary.intervals); i++ {
+	// 	fmt.Println(summary.intervals[i])
+	// }
+
 	file.Close()
+
+	return summary
 }
 
 func (sstable *SSTable) ReadBloom() {
-	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-
-	file, err := os.Open(path + "/filter.bin")
-	if err != nil {
-		log.Fatal(err)
-	}
+	file := sstable.OpenFile("filter.bin")
 
 	blm := byteToBloomFilter(file)
 	fmt.Println("K: ", blm.K)
@@ -532,4 +551,66 @@ func (sstable *SSTable) ReadBloom() {
 	fmt.Println("hashfuncs: ", blm.HashFuncs)
 	file.Close()
 
+}
+
+// ------------ PRETRAZIVANJE ------------
+
+func (sstable *SSTable) Find(key string) (bool, *Data) {
+	//Ucitavamo bloomfilter
+	filterFile := sstable.OpenFile("filter.bin")
+	sstable.bloomFilter = byteToBloomFilter(filterFile)
+	filterFile.Close()
+
+	//Proveravamo preko BloomFiltera da li uopste treba da pretrazujemo
+	if !sstable.bloomFilter.IsInBloom([]byte(key)) {
+		return false, nil
+	}
+
+	//Proveravamo da li je kljuc van opsega
+	summary := sstable.ReadSummary()
+
+	if key < summary.firstKey || key > summary.lastKey {
+		return false, nil
+	}
+
+	indexInSummary := new(Index)
+	found := false
+	for i := 1; i < len(summary.intervals); i++ {
+		if key < summary.intervals[i].key {
+			indexInSummary = summary.intervals[i-1]
+			found = true
+			break
+		}
+	}
+	if !found {
+		indexInSummary = summary.intervals[len(summary.intervals)-1]
+	}
+
+	// ------ Otvaramo index tabelu ------
+	indexFile := sstable.OpenFile("index.bin")
+
+	found = false
+	indexFile.Seek(int64(indexInSummary.offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+	currentIndex := new(Index)
+
+	//trazimo redom
+	for i := 0; i < int(sstable.intervalSize); i++ {
+		currentIndex = byteToIndex(indexFile)
+		if currentIndex.key == key {
+			found = true
+			break
+		}
+	}
+	indexFile.Close() //zatvaramo indeksnu tabelu
+
+	if !found {
+		return false, nil
+	}
+
+	// ------ Pristupamo disku i uzimamo podatak ------
+	dataFile := sstable.OpenFile("data.bin")
+	_, foundData := ByteToData(dataFile, currentIndex.offset)
+	dataFile.Close()
+
+	return true, foundData
 }
