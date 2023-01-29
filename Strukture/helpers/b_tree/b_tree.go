@@ -15,7 +15,7 @@ type BTreeNode struct {
 }
 
 type BTree struct {
-	root    *BTreeNode
+	Root    *BTreeNode
 	m       uint //Red stabla(maks broj dece)
 	maxKeys uint //Maksimalan broj kljuceva
 	size    uint //Broj elemenata u stablu
@@ -33,7 +33,7 @@ func NewBTreeNode(parent *BTreeNode) *BTreeNode {
 // m = maksimalan broj dece
 func NewBTree(m uint) *BTree {
 	bTree := new(BTree)
-	bTree.root = nil
+	bTree.Root = nil
 	bTree.m = m
 	bTree.maxKeys = m - 1
 	bTree.size = 0
@@ -60,11 +60,11 @@ func RemoveIndex(s []string, index int) []string {
 // Trazi cvor sa kljucem
 func (bTree *BTree) FindNode(keyToFind string) (bool, *BTreeNode) {
 	//Da ne puca ako je prazan koren
-	if bTree.root == nil {
+	if bTree.Root == nil {
 		return false, nil
 	}
 
-	currentNode := bTree.root //Pocinjemo od korena
+	currentNode := bTree.Root //Pocinjemo od korena
 	for true {
 		numberOfKeys := len(currentNode.keys) //Broj kljuceva za pretragu
 
@@ -100,7 +100,7 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	//Uslov za izlaz iz rekurzije, ako je dosao do korena
 	if parent == nil {
 		newRoot := NewBTreeNode(nil)
-		bTree.root = newRoot
+		bTree.Root = newRoot
 		parent = newRoot
 	}
 
@@ -248,11 +248,11 @@ func (bTree *BTree) InsertElem(key string, val []byte, tombstone ...bool) {
 	}
 
 	//U slucaju da koren ne postoji
-	if bTree.root == nil {
-		bTree.root = NewBTreeNode(nil) //Nema roditelja :(
-		bTree.root.keys = append(bTree.root.keys, key)
-		bTree.root.keys = BubbleSort(bTree.root.keys)
-		bTree.root.values[key] = data
+	if bTree.Root == nil {
+		bTree.Root = NewBTreeNode(nil) //Nema roditelja :(
+		bTree.Root.keys = append(bTree.Root.keys, key)
+		bTree.Root.keys = BubbleSort(bTree.Root.keys)
+		bTree.Root.values[key] = data
 		bTree.size++
 		return
 	}
@@ -331,34 +331,31 @@ func (bTree *BTree) Remove(key string) {
 }
 
 // INORDER obilazak
-func (t *BTree) InOrder() []map[string]*Data {
-	result := make([]map[string]*Data, 0)
-	inOrderTraversal(t.root, &result)
-	return result
-}
-
-func inOrderTraversal(node *BTreeNode, result *[]map[string]*Data) {
+func (bTree *BTree) InorderTraverse(node *BTreeNode, keys *[]string, values *[]*Data) {
 	if node == nil {
 		return
 	}
-
-	for i := 0; i < len(node.children); i++ {
-		inOrderTraversal(node.children[i], result)
+	for i := 0; i < len(node.children)-1; i++ {
+		bTree.InorderTraverse(node.children[i], keys, values)
+		if i < len(node.keys) {
+			*keys = append(*keys, node.keys[i])
+			*values = append(*values, node.values[node.keys[i]])
+		}
 	}
-
-	for _, key := range node.keys {
-		*result = append(*result, map[string]*Data{key: node.values[key]})
-	}
-
-	for i := len(node.children) - 1; i >= 0; i-- {
-		inOrderTraversal(node.children[i], result)
+	if len(node.children) > 0 {
+		bTree.InorderTraverse(node.children[len(node.children)-1], keys, values)
+	} else {
+		for i := 0; i < len(node.keys); i++ {
+			*keys = append(*keys, node.keys[i])
+			*values = append(*values, node.values[node.keys[i]])
+		}
 	}
 }
 
-// DEVIOUS LICK
+// Ispis b stabla
 func (t *BTree) PrintBTree() {
 	var queue []*BTreeNode
-	queue = append(queue, t.root)
+	queue = append(queue, t.Root)
 	level := 0
 
 	for len(queue) > 0 {

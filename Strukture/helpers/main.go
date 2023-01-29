@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	bTree := b_tree.NewBTree(5)
+	bTree := b_tree.NewBTree(3)
 	bTree.InsertElem("a", []byte("monke"), true)
 	bTree.InsertElem("b", []byte("monke"))
 	bTree.InsertElem("c", []byte("monke"))
@@ -35,10 +35,10 @@ func main() {
 	bTree.Remove("g")
 	bTree.PrintBTree()
 
-	data := new(Data)
-	fmt.Println(data)
-	sortiranaMapa := bTree.InOrder()
-	for key, val := range sortiranaMapa {
-		fmt.Println("KEY: ", key, "VAL: ", val)
+	keys := make([]string, 0)
+	values := make([]*Data, 0)
+	bTree.InorderTraverse(bTree.Root, &keys, &values)
+	for i := 0; i < len(keys); i++ {
+		fmt.Println("Key: ", keys[i], "Value: ", string(values[i].Value))
 	}
 }
