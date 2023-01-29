@@ -72,11 +72,12 @@ func (m *MemTableTree) Flush() {
 
 func (m *MemTableList) Flush() {
 
+	keys := make([]string, 0)
+	values := make([]*Data, 0)
 	//dobavi sve sortirane podatke
-	nodelist := m.slist.GetAllNodes()
+	m.slist.GetAllNodes(&keys, &values)
 
 	//TODO: posalji podatke SStabeli
-	fmt.Println(nodelist) //stoji print da ne bi prijavljivao gresku
 
 	//praznjenje skipliste
 	newSkiplist := NewSkipList(m.size)
@@ -90,14 +91,14 @@ func (m MemTableTree) Put(key string, value []byte, tombstone ...bool) {
 		m.btree.InsertElem(key, value)
 	}
 
-	if m.btree.size == m.size {
-		m.Flush()
-	}
+	// if m.btree.Size == m.size {
+	// 	m.Flush()
+	// }
 }
 
-func (m *MemTableList) Put(key string, value []byte, timestamp []byte) {
-	m.slist.Put(key, value, timestamp)
-	if m.slist.size == m.size {
+func (m *MemTableList) Put(key string, value []byte, tombstone ...bool) {
+	m.slist.Put(key, value)
+	if m.slist.GetSize() == m.size {
 		m.Flush()
 	}
 }
@@ -128,18 +129,18 @@ func main() {
 	// }
 
 	mem_table := NewMemTableList(config.MemtableSize)
-	mem_table.Put("1", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("i", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("c", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("e", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("d", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("f", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("g", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("s", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("q", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("r", []byte("majmun"), []byte("vreme"))
-	mem_table.Put("t", []byte("majmun"), []byte("vreme"))
-	mem_table.slist.print()
+	mem_table.Put("1", []byte("majmun"))
+	mem_table.Put("i", []byte("majmun"))
+	mem_table.Put("c", []byte("majmun"))
+	mem_table.Put("e", []byte("majmun"))
+	mem_table.Put("d", []byte("majmun"))
+	mem_table.Put("f", []byte("majmun"))
+	mem_table.Put("g", []byte("majmun"))
+	mem_table.Put("s", []byte("majmun"))
+	mem_table.Put("q", []byte("majmun"))
+	mem_table.Put("r", []byte("majmun"))
+	mem_table.Put("t", []byte("majmun"))
+	mem_table.slist.Print()
 
 	//ne treba za proj marshal jer necemo zapisivati samo citati
 	marshalled, err := yaml.Marshal(config)
