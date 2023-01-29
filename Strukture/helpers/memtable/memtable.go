@@ -56,7 +56,7 @@ func NewMemTableTree(s uint) *MemTableTree {
 
 }
 
-func NewMemTable(s uint, isTree bool) *MemTable {
+func NewMemTable(memTable MemTable) *MemTable {
 	if isTree {
 		return NewBTree(s)
 	}

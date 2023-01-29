@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	. "project/gosaomi/bloom"
 	. "project/gosaomi/dataType"
+	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/wal"
 )
 
@@ -375,8 +376,8 @@ func byteToBloomFilter(file *os.File) *BloomFilter {
 	return blm
 }
 
-// Vraca pokazivace na kreirane fajlove(summary,index,data)
-func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
+// Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
+func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File, *os.File) {
 	//kreiramo novi direktorijum
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
@@ -414,29 +415,39 @@ func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
 		log.Fatal(err6)
 	}
 
-	return summary, index, data, filter
+	metadata, err7 := os.Create(path + "/metadata.txt")
+	if err7 != nil {
+		log.Fatal(err7)
+	}
+
+	return summary, index, data, filter, metadata
 }
 
 // Iterira se kroz string kljuceve i ubacuje u:
 // Bloomfilter
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTable) Flush(keys []string, values []*Data) {
-	//TO DO: dodati merkle stablo (metadata)
-
-	summaryFile, indexFile, dataFile, filterFile := sstable.makeFiles()
-	summary := new(Summary)
-	summary.firstKey = keys[0]
-	summary.lastKey = keys[len(keys)-1]
-	summary.intervals = make([]*Index, 0)
+	summaryFile, indexFile, dataFile, filterFile, metadataFile := sstable.makeFiles()
+	sstable.summary.firstKey = keys[0]
+	sstable.summary.lastKey = keys[len(keys)-1]
+	sstable.summary.intervals = make([]*Index, 0)
 
 	offsetIndex := uint64(0) //offset ka indeksu(koristi se u summary)
 	offsetData := uint64(0)  //offset ka disku(koristi se u indeks tabeli)
 
+	nodes := make([]*merkle.Node, 0) //
+
 	intervalCounter := uint(sstable.intervalSize) //Kada dostigne postavljeni interval zapisuje novi offset indeksnog intervala
 	for i := 0; i < len(keys); i++ {
 		index := new(Index) //Pomocna struktura (menja se u svakoj iteraciji)
+
 		//Dodajemo u bloomFilter
 		sstable.bloomFilter.AddToBloom([]byte(keys[i]))
+
+		//Dodajemo u merkle
+		node := new(merkle.Node)
+		node.Data = dataToByte(keys[i], values[i])
+		nodes = append(nodes, node)
 
 		//Upisujemo trenutni podatak u data tabelu
 		dataLen, err1 := dataFile.Write(dataToByte(keys[i], values[i]))
@@ -457,7 +468,7 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 			index.offset = offsetIndex
 
 			//Ubacimo u summary
-			summary.intervals = append(summary.intervals, index)
+			sstable.summary.intervals = append(sstable.summary.intervals, index)
 
 			intervalCounter = 0
 		}
@@ -468,7 +479,7 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	}
 
 	//Upis summary u summaryFile
-	_, err2 := summaryFile.Write(summaryToByte(summary))
+	_, err2 := summaryFile.Write(summaryToByte(sstable.summary))
 	if err2 != nil {
 		log.Fatal(err2)
 	}
@@ -476,11 +487,16 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	//Upis u bloomfilter fajl
 	filterFile.Write(bloomFilterToByte(sstable.bloomFilter))
 
+	//Upis u metadata fajl
+	merkleRoot := merkle.MakeMerkel(nodes)
+	merkle.WriteFile(metadataFile, merkleRoot.Root)
+
 	//Zatvaranje fajlova
 	summaryFile.Close()
 	indexFile.Close()
 	dataFile.Close()
 	filterFile.Close()
+	metadataFile.Close()
 }
 
 // ------------ PRINTOVANJE ------------
