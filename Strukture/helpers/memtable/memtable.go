@@ -14,8 +14,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const numberOfChildren = 3
-
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
 	WalSize           uint   `yaml:"wal_size"`
@@ -51,9 +49,10 @@ func NewMemTableList(s uint) *MemTableList {
 
 // konstruktor za b stablo
 func NewMemTableTree(s uint) *MemTableTree {
+	config := GetConfig()
 	m := new(MemTableTree)
 	m.size = s
-	m.btree = NewBTree(numberOfChildren)
+	m.btree = NewBTree(config.BTreeNumOfChildren)
 	return m
 
 }
@@ -68,14 +67,15 @@ func (m *MemTableList) Print() {
 
 // sstableName - prosledjujemo u writepath-u
 func (m *MemTableTree) Flush(sstableName string) {
-	//dobavi sve sortirane podatke
+	config := GetConfig()
 
+	//dobavi sve sortirane podatke
 	keys := make([]string, 0)
 	values := make([]*Data, 0)
 	m.btree.InorderTraverse(m.btree.Root, &keys, &values)
 
 	//praznjenje b_stabla i rotacija
-	newBTree := NewBTree(numberOfChildren)
+	newBTree := NewBTree(config.BTreeNumOfChildren)
 	m.btree = newBTree
 
 	sstable := NewSSTable(uint32(m.size), sstableName)

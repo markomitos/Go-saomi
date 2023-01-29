@@ -1,3 +1,6 @@
 wal_size: 10
-memtable_size: 10
+memtable_size: 20
 memtable_structure: b_tree
+sstable_interval: 10
+bloom_falsepositive_rate: 2.0
+btree_num_of_children: 3

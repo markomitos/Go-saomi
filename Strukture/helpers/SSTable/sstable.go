@@ -8,14 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	. "project/gosaomi/bloom"
+	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/wal"
 )
-
-// Treba ubaciti konfiguraciju
-const INTERVAL = 10
-const FALSE_POSITIVE_RATE = 2
 
 type Index struct {
 	offset  uint64
@@ -40,13 +37,14 @@ type SSTable struct {
 // size - ocekivani broj elemenata (velinica memtabele)
 // directory - naziv direktorijuma
 func NewSSTable(size uint32, directory string) *SSTable {
+	config := GetConfig()
 	sstable := new(SSTable)
-	sstable.intervalSize = INTERVAL
+	sstable.intervalSize = config.SStableInterval
 	sstable.directory = directory
 
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
-		sstable.bloomFilter = NewBloomFilter(size, FALSE_POSITIVE_RATE)
+		sstable.bloomFilter = NewBloomFilter(size, config.BloomFalsePositiveRate)
 	} else {
 		sstable.LoadSSTable()
 	}
