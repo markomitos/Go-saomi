@@ -6,10 +6,13 @@ import (
 	"log"
 
 	. "project/gosaomi/b_tree"
+	. "project/gosaomi/dataType"
 	. "project/gosaomi/skiplist"
 
 	"gopkg.in/yaml.v2"
 )
+
+const numberOfChildren = 3
 
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
@@ -47,28 +50,30 @@ func NewMemTableList(s int) *MemTableList {
 // konstruktor za b stablo
 func NewMemTableTree(s int) *MemTableTree {
 	m := new(MemTableTree)
-	m.btree = NewBTree(3)
+	m.btree = NewBTree(numberOfChildren)
 	return m
 
 }
 
 // TO DO implementirati flush za obe strukture - da isprazni memtable i stavi ga u SSTable na disku
-func (m MemTableTree) Flush() {
+func (m *MemTableTree) Flush() {
 	//dobavi sve sortirane podatke
-	nodelist := m.btree.GetAllNodes()
+
+	keys := make([]string, 0)
+	values := make([]*Data, 0)
+	m.btree.InorderTraverse(m.btree.Root, &keys, &values)
 
 	//TODO: posalji podatke SStabeli
-	fmt.Println(nodelist) //stoji print da ne bi prijavljivao gresku
 
-	//praznjenje skipliste
-	newSkiplist := newSkipList(m.size)
-	m.slist = newSkiplist
+	//praznjenje b_stabla
+	newBTree := NewBTree(numberOfChildren)
+	m.btree = newBTree
 }
 
 func (m *MemTableList) Flush() {
 
 	//dobavi sve sortirane podatke
-	nodelist := m.slist.getAllNodes()
+	nodelist := m.slist.GetAllNodes()
 
 	//TODO: posalji podatke SStabeli
 	fmt.Println(nodelist) //stoji print da ne bi prijavljivao gresku
@@ -78,8 +83,13 @@ func (m *MemTableList) Flush() {
 	m.slist = newSkiplist
 }
 
-func (m MemTableTree) Put(key uint, value []byte, timestamp []byte) {
-	m.btree.InsertElem(key, value, timestamp)
+func (m MemTableTree) Put(key string, value []byte, tombstone ...bool) {
+	if len(tombstone) > 0 {
+		m.btree.InsertElem(key, value, tombstone[0])
+	} else {
+		m.btree.InsertElem(key, value)
+	}
+
 	if m.btree.size == m.size {
 		m.Flush()
 	}
