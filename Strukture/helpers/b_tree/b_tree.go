@@ -18,7 +18,7 @@ type BTree struct {
 	Root    *BTreeNode
 	m       uint //Red stabla(maks broj dece)
 	maxKeys uint //Maksimalan broj kljuceva
-	size    uint //Broj elemenata u stablu
+	Size    uint //Broj elemenata u stablu
 }
 
 func NewBTreeNode(parent *BTreeNode) *BTreeNode {
@@ -36,7 +36,7 @@ func NewBTree(m uint) *BTree {
 	bTree.Root = nil
 	bTree.m = m
 	bTree.maxKeys = m - 1
-	bTree.size = 0
+	bTree.Size = 0
 	return bTree
 }
 
@@ -253,7 +253,7 @@ func (bTree *BTree) InsertElem(key string, val []byte, tombstone ...bool) {
 		bTree.Root.keys = append(bTree.Root.keys, key)
 		bTree.Root.keys = BubbleSort(bTree.Root.keys)
 		bTree.Root.values[key] = data
-		bTree.size++
+		bTree.Size++
 		return
 	}
 
@@ -269,7 +269,7 @@ func (bTree *BTree) InsertElem(key string, val []byte, tombstone ...bool) {
 	node.keys = append(node.keys, key)
 	node.values[key] = data
 	node.keys = BubbleSort(node.keys)
-	bTree.size++
+	bTree.Size++
 
 	//Ukoliko nema mesta u trenutnom cvoru
 	if len(node.keys) > int(bTree.maxKeys) {

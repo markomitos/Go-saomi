@@ -13,7 +13,7 @@ import (
 )
 
 // Treba ubaciti konfiguraciju
-const INTERVAL = 128
+const INTERVAL = 10
 const FALSE_POSITIVE_RATE = 2
 
 type Index struct {
@@ -36,6 +36,8 @@ type SSTable struct {
 }
 
 // Konstruktor
+// size - ocekivani broj elemenata (velinica memtabele)
+// directory - naziv direktorijuma
 func NewSSTable(size uint32, directory string) *SSTable {
 	sstable := new(SSTable)
 	sstable.intervalSize = INTERVAL
@@ -43,7 +45,6 @@ func NewSSTable(size uint32, directory string) *SSTable {
 	sstable.bloomFilter = NewBloomFilter(size, FALSE_POSITIVE_RATE)
 	sstable.summary = new(Summary)
 
-	//pravljenje fajlova
 	return sstable
 }
 
@@ -53,7 +54,9 @@ func NewSSTable(size uint32, directory string) *SSTable {
 func indexToByte(index *Index) []byte {
 	bytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(bytes, index.offset)
-	binary.BigEndian.AppendUint32(bytes, index.keySize)
+	bytesKeySize := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytesKeySize, index.keySize)
+	bytes = append(bytes, bytesKeySize...)
 	bytes = append(bytes, []byte(index.key)...)
 	return bytes
 }
@@ -150,7 +153,9 @@ func summaryToByte(summary *Summary) []byte {
 	//HEADER --> velicina prvog elementa, velicina drugog elementa
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, uint32(firstKeyLen))
-	binary.BigEndian.AppendUint32(bytes, uint32(lastKeyLen))
+	bytesLastKeyLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytesLastKeyLen, uint32(lastKeyLen))
+	bytes = append(bytes, bytesLastKeyLen...)
 
 	//GLAVNI DEO
 	bytes = append(bytes, []byte(summary.firstKey)...)
@@ -237,18 +242,34 @@ func bytesToBools(b []byte) []bool {
 
 // Priprema bloom filtera za upis
 func bloomFilterToByte(blm *BloomFilter) []byte {
+	//Zapisujemo konstante
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, uint32(blm.K))
-	binary.BigEndian.AppendUint32(bytes, uint32(blm.N))
-	binary.BigEndian.AppendUint32(bytes, uint32(blm.M))
+
+	bytesN := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytesN, uint32(blm.N))
+	bytes = append(bytes, bytesN...)
+
+	bytesM := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytesM, uint32(blm.M))
+	bytes = append(bytes, bytesM...)
 
 	//pretvaramo niz bool u bytes
 	bitsetByte := boolsToBytes(blm.Bitset)
 
-	binary.BigEndian.AppendUint32(bytes, uint32(len(bitsetByte)))
+	//belezimo duzinu bitseta
+	bytesBitSetLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytesBitSetLen, uint32(len(bitsetByte)))
+	bytes = append(bytes, bytesBitSetLen...)
+
 	bytes = append(bytes, bitsetByte...)
 	for _, fn := range blm.HashFuncs {
-		binary.BigEndian.AppendUint32(bytes, uint32(len(fn.Seed))) //Belezi velicinu svake hashfunkcije
+		//Belezimo duzinu svake hashfunkcije
+		bytesHFLen := make([]byte, 4)
+		binary.BigEndian.PutUint32(bytesHFLen, uint32(len(fn.Seed)))
+		bytes = append(bytes, bytesHFLen...)
+
+		//zapisuje hashfunkciju
 		bytes = append(bytes, fn.Seed...)
 	}
 
@@ -323,9 +344,9 @@ func byteToBloomFilter(file *os.File) *BloomFilter {
 // Vraca pokazivace na kreirane fajlove(summary,index,data)
 func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
 	//kreiramo novi direktorijum
-	_, err := os.Stat(sstable.directory)
+	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
-		err = os.MkdirAll(sstable.directory, os.ModePerm)
+		err = os.MkdirAll("files/sstable/"+sstable.directory, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -334,7 +355,7 @@ func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
 	}
 
 	//Kreiramo fajlove unutar direktorijuma
-	path, err2 := filepath.Abs(sstable.directory)
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
 	if err2 != nil {
 		log.Fatal(err2)
 	}
@@ -420,4 +441,73 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 
 	//Upis u bloomfilter fajl
 	filterFile.Write(bloomFilterToByte(sstable.bloomFilter))
+
+	//Zatvaranje fajlova
+	summaryFile.Close()
+	indexFile.Close()
+	dataFile.Close()
+	filterFile.Close()
+}
+
+// Printuje sstabelu
+func (sstable *SSTable) ReadData() {
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	file, err := os.Open(path + "/data.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		entry := ReadEntry(file)
+		if entry == nil {
+			break
+		}
+		entry.Print()
+	}
+	file.Close()
+}
+
+func (sstable *SSTable) ReadIndex() {
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	file, err := os.Open(path + "/index.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		index := byteToIndex(file)
+		if index == nil {
+			break
+		}
+		fmt.Println(index)
+	}
+	file.Close()
+
+}
+
+func (sstable *SSTable) ReadSummary() {
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	file, err := os.Open(path + "/summary.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	summary := byteToSummary(file)
+	for i := 0; i < len(summary.intervals); i++ {
+		fmt.Println(summary.intervals[i])
+	}
+	file.Close()
+
 }

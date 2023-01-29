@@ -283,7 +283,7 @@ func ReadEntry(file *os.File) *Entry {
 }
 
 // ispis pojedinacnog unosa
-func (entry *Entry) print() {
+func (entry *Entry) Print() {
 	Timestamp := binary.BigEndian.Uint64(entry.Timestamp)
 	Key_size := binary.BigEndian.Uint64(entry.Key_size)
 	Value_size := binary.BigEndian.Uint64(entry.Value_size)
@@ -310,7 +310,7 @@ func (wal *WriteAheadLog) readLog(filename string) {
 		if entry == nil {
 			break
 		}
-		entry.print()
+		entry.Print()
 	}
 	file.Close()
 
@@ -332,7 +332,7 @@ func main() {
 	wal := NewWriteAheadLog("test")
 	for i := 0; i < 101; i++ {
 		e := wal.NewEntry([]byte(strconv.Itoa(i*125)), []byte("mjm"))
-		e.print()
+		e.Print()
 	}
 	entry := wal.NewEntry([]byte("789"), []byte("majmun"))
 	entry.Key = []byte("456")
