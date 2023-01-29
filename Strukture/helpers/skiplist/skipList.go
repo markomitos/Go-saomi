@@ -118,6 +118,7 @@ func (s *SkipList) Put(key string, value []byte, tombstone ...bool) {
 			tombstone: false,
 			next:      make([]*SkipListNode, level),
 		}
+		s.size += 1
 
 		//Prevezujemo pokazivace do visine pronadjenog node-a
 		for currentLevel := int(math.Min(float64(len(node.next)), float64(level))) - 1; currentLevel >= 0; currentLevel-- {
@@ -201,12 +202,12 @@ func (s *SkipList) Remove(key string) {
 
 // uzima sve podatke u sortiranom redosledu
 func (s *SkipList) GetAllNodes(keys *[]string, values *[]*Data) {
-	data := new(Data)
 
 	// var nodeList = make(map[string]*dataType.Data)
 	currentNode := s.head
 	for currentNode.next[0] != nil {
 		next := currentNode.next[0]
+		data := new(Data)
 		data.Timestamp = next.timestamp
 		data.Tombstone = next.tombstone
 		data.Value = next.value

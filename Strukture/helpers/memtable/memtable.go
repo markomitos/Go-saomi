@@ -1,4 +1,4 @@
-package memtable
+package main
 
 import (
 	"fmt"
@@ -78,7 +78,10 @@ func (m *MemTableList) Flush() {
 	m.slist.GetAllNodes(&keys, &values)
 
 	//TODO: posalji podatke SStabeli
-
+	fmt.Println(keys)
+	for i := 0; i < 10; i++ {
+		fmt.Println(values[i])
+	}
 	//praznjenje skipliste
 	newSkiplist := NewSkipList(m.size)
 	m.slist = newSkiplist
@@ -91,9 +94,9 @@ func (m MemTableTree) Put(key string, value []byte, tombstone ...bool) {
 		m.btree.InsertElem(key, value)
 	}
 
-	// if m.btree.Size == m.size {
-	// 	m.Flush()
-	// }
+	if m.btree.Size == m.size {
+		m.Flush()
+	}
 }
 
 func (m *MemTableList) Put(key string, value []byte, tombstone ...bool) {
@@ -128,19 +131,19 @@ func main() {
 	// 	mem_table := newMemTableList(config.MemtableSize)
 	// }
 
-	mem_table := NewMemTableList(config.MemtableSize)
+	mem_table := NewMemTableTree(config.MemtableSize)
 	mem_table.Put("1", []byte("majmun"))
 	mem_table.Put("i", []byte("majmun"))
 	mem_table.Put("c", []byte("majmun"))
 	mem_table.Put("e", []byte("majmun"))
 	mem_table.Put("d", []byte("majmun"))
-	mem_table.Put("f", []byte("majmun"))
+	mem_table.Put("f", []byte("alobre213"))
 	mem_table.Put("g", []byte("majmun"))
 	mem_table.Put("s", []byte("majmun"))
 	mem_table.Put("q", []byte("majmun"))
 	mem_table.Put("r", []byte("majmun"))
 	mem_table.Put("t", []byte("majmun"))
-	mem_table.slist.Print()
+	mem_table.btree.PrintBTree()
 
 	//ne treba za proj marshal jer necemo zapisivati samo citati
 	marshalled, err := yaml.Marshal(config)
