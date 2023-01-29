@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"project/gosaomi/b_tree"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/sstable"
@@ -38,13 +39,15 @@ func main() {
 	keys := make([]string, 0)
 	values := make([]*Data, 0)
 	bTree.InorderTraverse(bTree.Root, &keys, &values)
-	// for i := 0; i < len(keys); i++ {
-	// 	fmt.Println("Key: ", keys[i], "Value: ", string(values[i].Value))
-	// }
+	for i := 0; i < len(keys); i++ {
+		fmt.Println("Key: ", keys[i], "Value: ", string(values[i].Value))
+	}
 
 	//SSTABELA
 	sstable := NewSSTable(uint32(bTree.Size), "sstable-1")
-	sstable.Flush(keys, values)
+	// sstable.Flush(keys, values)
 	// sstable.ReadData()
-	sstable.ReadIndex()
+	// sstable.ReadIndex()
+	// sstable.ReadSummary()
+	sstable.ReadBloom()
 }

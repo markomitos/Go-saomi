@@ -315,6 +315,7 @@ func byteToBloomFilter(file *os.File) *BloomFilter {
 		log.Fatal(err)
 	}
 	blm.Bitset = bytesToBools(bytes)
+	blm.Bitset = blm.Bitset[0:blm.M] //Osisamo visak u poslednjem bajtu
 
 	blm.HashFuncs = make([]HashWithSeed, 0)
 	hashWithSeed := new(HashWithSeed)
@@ -390,7 +391,6 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	//TO DO: dodati merkle stablo (metadata)
 
 	summaryFile, indexFile, dataFile, filterFile := sstable.makeFiles()
-	index := new(Index) //Pomocna struktura (menja se u svakoj iteraciji)
 	summary := new(Summary)
 	summary.firstKey = keys[0]
 	summary.lastKey = keys[len(keys)-1]
@@ -401,6 +401,7 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 
 	intervalCounter := uint(sstable.intervalSize) //Kada dostigne postavljeni interval zapisuje novi offset indeksnog intervala
 	for i := 0; i < len(keys); i++ {
+		index := new(Index) //Pomocna struktura (menja se u svakoj iteraciji)
 		//Dodajemo u bloomFilter
 		sstable.bloomFilter.AddToBloom([]byte(keys[i]))
 
@@ -449,7 +450,7 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	filterFile.Close()
 }
 
-// Printuje sstabelu
+// ------------ PRINTOVANJE --------------
 func (sstable *SSTable) ReadData() {
 	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
 	if err2 != nil {
@@ -490,7 +491,6 @@ func (sstable *SSTable) ReadIndex() {
 		fmt.Println(index)
 	}
 	file.Close()
-
 }
 
 func (sstable *SSTable) ReadSummary() {
@@ -505,9 +505,31 @@ func (sstable *SSTable) ReadSummary() {
 	}
 
 	summary := byteToSummary(file)
+	fmt.Println("First key: ", summary.firstKey)
+	fmt.Println("Last key: ", summary.lastKey)
 	for i := 0; i < len(summary.intervals); i++ {
 		fmt.Println(summary.intervals[i])
 	}
+	file.Close()
+}
+
+func (sstable *SSTable) ReadBloom() {
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	file, err := os.Open(path + "/filter.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	blm := byteToBloomFilter(file)
+	fmt.Println("K: ", blm.K)
+	fmt.Println("N: ", blm.N)
+	fmt.Println("M: ", blm.M)
+	fmt.Println("Bitset: ", blm.Bitset)
+	fmt.Println("hashfuncs: ", blm.HashFuncs)
 	file.Close()
 
 }
