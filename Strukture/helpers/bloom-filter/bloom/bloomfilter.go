@@ -5,35 +5,35 @@ import (
 )
 
 type BloomFilter struct {
-	bitset    []bool // niz
-	k         uint   // Number of hash values
-	n         uint   // Number of elements in the filter
-	m         uint   // Size of the bloom filter bitset
-	hashFuncs []HashWithSeed
+	Bitset    []bool // niz
+	K         uint32 // Number of hash values
+	N         uint32 // Number of elements in the filter
+	M         uint32 // Size of the bloom filter bitset
+	HashFuncs []HashWithSeed
 }
 
 // Konstruktor
-func NewBloomFilter(expectedNumOfElem uint, falsePositiveRate float64) *BloomFilter {
+func NewBloomFilter(expectedNumOfElem uint32, falsePositiveRate float64) *BloomFilter {
 	blm := new(BloomFilter)
-	blm.m = CalculateM(expectedNumOfElem, falsePositiveRate)
-	blm.k = CalculateK(expectedNumOfElem, blm.m)
-	blm.n = 0
-	blm.hashFuncs = CreateHashFunctions(blm.k)
-	blm.bitset = make([]bool, blm.m)
+	blm.M = CalculateM(expectedNumOfElem, falsePositiveRate)
+	blm.K = CalculateK(expectedNumOfElem, blm.M)
+	blm.N = 0
+	blm.HashFuncs = CreateHashFunctions(blm.K)
+	blm.Bitset = make([]bool, blm.M)
 	return blm
 }
 
 func (blm *BloomFilter) AddToBloom(elem []byte) {
-	blm.n++
-	for _, fn := range blm.hashFuncs {
-		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.m)))
-		blm.bitset[hashedValue] = true
+	blm.N++
+	for _, fn := range blm.HashFuncs {
+		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.M)))
+		blm.Bitset[hashedValue] = true
 	}
 }
 
 func (blm *BloomFilter) IsInBloom(elem []byte) bool {
 	for _, fn := range blm.hashFuncs {
-		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.m)))
+		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.M)))
 		if blm.bitset[hashedValue] == false {
 			return false
 		}

@@ -36,7 +36,7 @@ type SSTable struct {
 }
 
 // Konstruktor
-func NewSSTable(size uint, directory string) *SSTable {
+func NewSSTable(size uint32, directory string) *SSTable {
 	sstable := new(SSTable)
 	sstable.intervalSize = INTERVAL
 	sstable.directory = directory
@@ -212,12 +212,116 @@ func byteToSummary(file *os.File) *Summary {
 	return summary
 }
 
-func bloomToByte(blm *BloomFilter) []byte {
+// pomocne funkcije za konvertovanje niza bool-ova u niz bajtova
+func boolsToBytes(t []bool) []byte {
+	b := make([]byte, (len(t)+7)/8)
+	for i, x := range t {
+		if x {
+			b[i/8] |= 0x80 >> uint(i%8)
+		}
+	}
+	return b
+}
 
+func bytesToBools(b []byte) []bool {
+	t := make([]bool, 8*len(b))
+	for i, x := range b {
+		for j := 0; j < 8; j++ {
+			if (x<<uint(j))&0x80 == 0x80 {
+				t[8*i+j] = true
+			}
+		}
+	}
+	return t
+}
+
+// Priprema bloom filtera za upis
+func bloomFilterToByte(blm *BloomFilter) []byte {
+	bytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(bytes, uint32(blm.K))
+	binary.BigEndian.AppendUint32(bytes, uint32(blm.N))
+	binary.BigEndian.AppendUint32(bytes, uint32(blm.M))
+
+	//pretvaramo niz bool u bytes
+	bitsetByte := boolsToBytes(blm.Bitset)
+
+	binary.BigEndian.AppendUint32(bytes, uint32(len(bitsetByte)))
+	bytes = append(bytes, bitsetByte...)
+	for _, fn := range blm.HashFuncs {
+		binary.BigEndian.AppendUint32(bytes, uint32(len(fn.Seed))) //Belezi velicinu svake hashfunkcije
+		bytes = append(bytes, fn.Seed...)
+	}
+
+	return bytes
+}
+
+func byteToBloomFilter(file *os.File) *BloomFilter {
+	blm := new(BloomFilter)
+	bytes := make([]byte, 4)
+
+	//Ucitavamo konstante
+	_, err := file.Read(bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	blm.K = binary.BigEndian.Uint32(bytes)
+
+	bytes = make([]byte, 4)
+	_, err = file.Read(bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	blm.N = binary.BigEndian.Uint32(bytes)
+
+	bytes = make([]byte, 4)
+	_, err = file.Read(bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	blm.M = binary.BigEndian.Uint32(bytes)
+
+	bytes = make([]byte, 4)
+	_, err = file.Read(bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bitsetSize := binary.BigEndian.Uint32(bytes)
+
+	//Ucitavamo bitset
+	bytes = make([]byte, bitsetSize)
+	_, err = file.Read(bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	blm.Bitset = bytesToBools(bytes)
+
+	blm.HashFuncs = make([]HashWithSeed, 0)
+	hashWithSeed := new(HashWithSeed)
+	//Ucitavamo svaku hashfunkciju
+	for i := uint32(0); i < blm.K; i++ {
+		//Ucitavamo duzinu trenutne hf
+		bytes = make([]byte, 4)
+		_, err = file.Read(bytes)
+		if err != nil {
+			log.Fatal(err)
+		}
+		hashFuncLen := binary.BigEndian.Uint32(bytes)
+
+		//citamo hf
+		bytes = make([]byte, hashFuncLen)
+		_, err = file.Read(bytes)
+		if err != nil {
+			log.Fatal(err)
+		}
+		hashWithSeed.Seed = bytes
+		blm.HashFuncs = append(blm.HashFuncs, *hashWithSeed)
+	}
+
+	return blm
 }
 
 // Vraca pokazivace na kreirane fajlove(summary,index,data)
-func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File) {
+func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File) {
 	//kreiramo novi direktorijum
 	_, err := os.Stat(sstable.directory)
 	if os.IsNotExist(err) {
@@ -250,15 +354,21 @@ func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File) {
 		log.Fatal(err5)
 	}
 
-	return summary, index, data
+	filter, err6 := os.Create(path + "/filter.bin")
+	if err6 != nil {
+		log.Fatal(err6)
+	}
+
+	return summary, index, data, filter
 }
 
 // Iterira se kroz string kljuceve i ubacuje u:
 // Bloomfilter
-// zapisuje u data
-// Kreira summary i index deo
+// zapisuje u data, index tabelu, summary
 func (sstable *SSTable) Flush(keys []string, values []*Data) {
-	summaryFile, indexFile, dataFile := sstable.makeFiles()
+	//TO DO: dodati merkle stablo (metadata)
+
+	summaryFile, indexFile, dataFile, filterFile := sstable.makeFiles()
 	index := new(Index) //Pomocna struktura (menja se u svakoj iteraciji)
 	summary := new(Summary)
 	summary.firstKey = keys[0]
@@ -309,4 +419,5 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	}
 
 	//Upis u bloomfilter fajl
+	filterFile.Write(bloomFilterToByte(sstable.bloomFilter))
 }
