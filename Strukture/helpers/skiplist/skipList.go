@@ -118,6 +118,9 @@ func (s *SkipList) Put(key string, value []byte, tombstone ...bool) {
 			tombstone: false,
 			next:      make([]*SkipListNode, level),
 		}
+		if len(tombstone) > 0 {
+			newNode.tombstone = tombstone[0]
+		}
 		s.size += 1
 
 		//Prevezujemo pokazivace do visine pronadjenog node-a

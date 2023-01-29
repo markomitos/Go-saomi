@@ -27,7 +27,7 @@ func main() {
 	bTree.InsertElem("g", []byte("monk"))
 	bTree.InsertElem("r", []byte("monke"))
 	bTree.InsertElem("l", []byte("monke"))
-	bTree.InsertElem("x", []byte("monke"))
+	bTree.InsertElem("x", []byte("giraffe"))
 	bTree.InsertElem("u", []byte("monk"))
 	bTree.InsertElem("h", []byte("monke"))
 	bTree.InsertElem("v", []byte("monke"))
@@ -45,9 +45,30 @@ func main() {
 
 	//SSTABELA
 	sstable := NewSSTable(uint32(bTree.Size), "sstable-1")
-	// sstable.Flush(keys, values)
+	sstable.Flush(keys, values)
 	// sstable.ReadData()
 	// sstable.ReadIndex()
 	// sstable.ReadSummary()
-	sstable.ReadBloom()
+	// sstable.ReadBloom()
+
+	found1, data1 := sstable.Find("b")
+	if !found1 {
+		fmt.Println("Nije pronadjen b")
+	} else {
+		fmt.Println(data1)
+	}
+
+	found2, data2 := sstable.Find("x")
+	if !found2 {
+		fmt.Println("Nije pronadjen x")
+	} else {
+		fmt.Println(data2)
+	}
+
+	found3, data3 := sstable.Find("aaaaaaa")
+	if !found3 {
+		fmt.Println("Nije pronadjen aaaaaaa")
+	} else {
+		fmt.Println(data3)
+	}
 }
