@@ -32,9 +32,9 @@ func (blm *BloomFilter) AddToBloom(elem []byte) {
 }
 
 func (blm *BloomFilter) IsInBloom(elem []byte) bool {
-	for _, fn := range blm.hashFuncs {
+	for _, fn := range blm.HashFuncs {
 		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.M)))
-		if blm.bitset[hashedValue] == false {
+		if blm.Bitset[hashedValue] == false {
 			return false
 		}
 	}
