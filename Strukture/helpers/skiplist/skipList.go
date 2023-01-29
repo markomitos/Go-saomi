@@ -62,7 +62,7 @@ func (s *SkipList) GetSize() uint {
 
 func (s *SkipList) find(key string) (*SkipListNode, bool) {
 	currentNode := s.head
-	for currentLevel := s.height - 1; currentLevel >= 0; currentLevel-- {
+	for currentLevel := int(s.height) - 1; currentLevel >= 0; currentLevel-- {
 		if currentNode.key == key {
 			return currentNode, true
 		} else if currentNode.key < key {
@@ -219,10 +219,10 @@ func (s *SkipList) Print() {
 		currentNode = currentNode.next[0]
 	}
 
-	for currentLevel := s.height - 1; currentLevel >= 0; currentLevel-- {
+	for currentLevel := int(s.height) - 1; currentLevel >= 0; currentLevel-- {
 		fmt.Print("head -")
 		for i := 0; i < len(nodeSlice); i++ {
-			if uint(len(nodeSlice[i].next)) > currentLevel {
+			if len(nodeSlice[i].next) > currentLevel {
 				fmt.Print("> " + nodeSlice[i].key)
 				fmt.Print(" -")
 			} else {

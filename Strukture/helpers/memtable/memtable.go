@@ -8,7 +8,8 @@ import (
 	. "project/gosaomi/b_tree"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/skiplist"
-	. "project/gosaomi/sstable"
+
+	// . "project/gosaomi/sstable"
 
 	"gopkg.in/yaml.v2"
 )
@@ -37,6 +38,7 @@ type MemTable interface {
 	Put(key string, value []byte, tombstone ...bool)
 	Remove(key string)
 	Flush()
+	Print()
 }
 
 // konstuktor za skiplistu
@@ -51,18 +53,20 @@ func NewMemTableList(s uint) *MemTableList {
 // konstruktor za b stablo
 func NewMemTableTree(s uint) *MemTableTree {
 	m := new(MemTableTree)
+	m.size = s
 	m.btree = NewBTree(numberOfChildren)
 	return m
 
 }
 
-func NewMemTable(s uint, isTree bool) *MemTable {
-	if isTree {
-		return NewBTree(s)
-	}
+func (m *MemTableTree) Print() {
+	m.btree.PrintBTree()
 }
 
-// TO DO implementirati flush za obe strukture - da isprazni memtable i stavi ga u SSTable na disku
+func (m *MemTableList) Print() {
+	m.slist.Print()
+}
+
 func (m *MemTableTree) Flush() {
 	//dobavi sve sortirane podatke
 
@@ -75,7 +79,7 @@ func (m *MemTableTree) Flush() {
 	m.btree = newBTree
 
 	//TODO: posalji podatke SStabeli
-	sstable := NewSSTable(uint32(m.size))
+	// sstable := NewSSTable(uint32(m.size))
 }
 
 func (m *MemTableList) Flush() {
@@ -138,9 +142,11 @@ func main() {
 	fmt.Println(config)
 
 	// u zavisnosti sta pise u configu pravimo il btree il skiplistu -- NE MOZE OVAKO
-	mem_table := NewMemTableList(config.MemtableSize)
+	var mem_table MemTable
 	if config.MemtableStructure == "btree" {
-		mem_table := NewMemTableTree(config.MemtableSize)
+		mem_table = NewMemTableTree(config.MemtableSize)
+	} else {
+		mem_table = NewMemTableList(config.MemtableSize)
 	}
 
 	mem_table.Put("1", []byte("majmun"))
@@ -149,12 +155,13 @@ func main() {
 	mem_table.Put("e", []byte("majmun"))
 	mem_table.Put("d", []byte("majmun"))
 	mem_table.Put("f", []byte("alobre213"))
+	mem_table.Remove("f")
 	mem_table.Put("g", []byte("majmun"))
 	mem_table.Put("s", []byte("majmun"))
 	mem_table.Put("q", []byte("majmun"))
 	mem_table.Put("r", []byte("majmun"))
-	mem_table.Put("t", []byte("majmun"))
-	mem_table.btree.PrintBTree()
+	// mem_table.Put("t", []byte("majmun"))
+	mem_table.Print()
 
 	//ne treba za proj marshal jer necemo zapisivati samo citati
 	marshalled, err := yaml.Marshal(config)
