@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 
+	. "structures/b_tree/b_tree"
+	. "structures/skiplist"
+
 	"gopkg.in/yaml.v2"
 )
 

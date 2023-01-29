@@ -1,7 +1,9 @@
 package main
 
 import (
-	"b_tree/b_tree"
+	. "dataType"
+	"fmt"
+	"structures/b_tree/b_tree"
 )
 
 func main() {
@@ -31,4 +33,11 @@ func main() {
 	bTree.InsertElem("z", []byte("monke"))
 	bTree.Remove("g")
 	bTree.PrintBTree()
+
+	data := new(Data)
+	fmt.Print(data)
+	sortiranaMapa := bTree.InOrder()
+	for key, val := range sortiranaMapa {
+		fmt.Println("KEY: ", key, "VAL: ", val)
+	}
 }

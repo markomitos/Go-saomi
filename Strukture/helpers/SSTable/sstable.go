@@ -1,6 +1,7 @@
 package sstable
 
 import (
+	. "data"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -8,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	. "structures/bloom/bloom"
-	. "structures/data"
 	. "structures/wal"
 )
 

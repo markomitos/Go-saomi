@@ -1,4 +1,4 @@
-package data
+package dataType
 
 type Data struct {
 	Value     []byte

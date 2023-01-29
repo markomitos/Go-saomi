@@ -1,9 +1,9 @@
 package b_tree
 
 import (
+	. "dataType"
 	"fmt"
 	"strings"
-	. "structures/data"
 	"time"
 )
 
@@ -328,6 +328,31 @@ func (bTree *BTree) Remove(key string) {
 		return
 	}
 	node.values[key].Tombstone = true
+}
+
+// INORDER obilazak
+func (t *BTree) InOrder() []map[string]*Data {
+	result := make([]map[string]*Data, 0)
+	inOrderTraversal(t.root, &result)
+	return result
+}
+
+func inOrderTraversal(node *BTreeNode, result *[]map[string]*Data) {
+	if node == nil {
+		return
+	}
+
+	for i := 0; i < len(node.children); i++ {
+		inOrderTraversal(node.children[i], result)
+	}
+
+	for _, key := range node.keys {
+		*result = append(*result, map[string]*Data{key: node.values[key]})
+	}
+
+	for i := len(node.children) - 1; i >= 0; i-- {
+		inOrderTraversal(node.children[i], result)
+	}
 }
 
 // DEVIOUS LICK
