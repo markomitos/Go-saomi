@@ -1,4 +1,4 @@
-package main
+package hll
 
 import (
 	"errors"
@@ -39,7 +39,7 @@ func Hash(data string) string {
 }
 
 // Konstruktor
-func newHLL(precision uint8) (*HLL, error) {
+func NewHLL(precision uint8) (*HLL, error) {
 	hll := new(HLL)
 	if precision < HLL_MIN_PRECISION && precision > HLL_MAX_PRECISION {
 		return nil, errors.New("Preciznost mora biti izmedju 4 i 16")
@@ -50,7 +50,7 @@ func newHLL(precision uint8) (*HLL, error) {
 	return hll, nil
 }
 
-func (hll *HLL) addToHLL(elem string) {
+func (hll *HLL) AddToHLL(elem string) {
 	hashString := Hash(elem)
 	fmt.Println(hashString)
 	bucketString := hashString[:hll.p]

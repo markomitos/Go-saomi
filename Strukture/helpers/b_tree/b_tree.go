@@ -1,14 +1,11 @@
-package main
+package b_tree
 
 import (
 	"fmt"
+	. "project/gosaomi/dataType"
 	"strings"
+	"time"
 )
-
-type Data struct {
-	value     []byte
-	tombstone bool
-}
 
 type BTreeNode struct {
 	keys     []string //Kljucevi
@@ -18,13 +15,13 @@ type BTreeNode struct {
 }
 
 type BTree struct {
-	root    *BTreeNode
+	Root    *BTreeNode
 	m       uint //Red stabla(maks broj dece)
 	maxKeys uint //Maksimalan broj kljuceva
-	size    uint //Broj elemenata u stablu
+	Size    uint //Broj elemenata u stablu
 }
 
-func newBTreeNode(parent *BTreeNode) *BTreeNode {
+func NewBTreeNode(parent *BTreeNode) *BTreeNode {
 	bTreeNode := new(BTreeNode)
 	bTreeNode.keys = make([]string, 0)
 	bTreeNode.values = make(map[string]*Data)
@@ -34,12 +31,12 @@ func newBTreeNode(parent *BTreeNode) *BTreeNode {
 }
 
 // m = maksimalan broj dece
-func newBTree(m uint) *BTree {
+func NewBTree(m uint) *BTree {
 	bTree := new(BTree)
-	bTree.root = nil
+	bTree.Root = nil
 	bTree.m = m
 	bTree.maxKeys = m - 1
-	bTree.size = 0
+	bTree.Size = 0
 	return bTree
 }
 
@@ -61,13 +58,13 @@ func RemoveIndex(s []string, index int) []string {
 }
 
 // Trazi cvor sa kljucem
-func (bTree *BTree) findNode(keyToFind string) (bool, *BTreeNode) {
+func (bTree *BTree) FindNode(keyToFind string) (bool, *BTreeNode) {
 	//Da ne puca ako je prazan koren
-	if bTree.root == nil {
+	if bTree.Root == nil {
 		return false, nil
 	}
 
-	currentNode := bTree.root //Pocinjemo od korena
+	currentNode := bTree.Root //Pocinjemo od korena
 	for true {
 		numberOfKeys := len(currentNode.keys) //Broj kljuceva za pretragu
 
@@ -102,8 +99,8 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 
 	//Uslov za izlaz iz rekurzije, ako je dosao do korena
 	if parent == nil {
-		newRoot := newBTreeNode(nil)
-		bTree.root = newRoot
+		newRoot := NewBTreeNode(nil)
+		bTree.Root = newRoot
 		parent = newRoot
 	}
 
@@ -119,7 +116,7 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	// middleVal := node.values[middleIndex]
 
 	// ----- left -----
-	leftNode := newBTreeNode(parent)
+	leftNode := NewBTreeNode(parent)
 	//dodajem kljuceve i vrednosti
 	for _, key := range node.keys[0:middleIndex] {
 		leftNode.keys = append(leftNode.keys, key)
@@ -134,7 +131,7 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	}
 
 	// ----- right -----
-	rightNode := newBTreeNode(parent)
+	rightNode := NewBTreeNode(parent)
 	//dodajem kljuceve i vrednosti
 	for _, key := range node.keys[middleIndex+1:] {
 		rightNode.keys = append(rightNode.keys, key)
@@ -241,25 +238,26 @@ func (bTree *BTree) rotateNodes(node *BTreeNode, sibling *BTreeNode, isRight boo
 }
 
 // Ubacuje kljuc
-func (bTree *BTree) insertElem(key string, val []byte, tombstone ...bool) {
+func (bTree *BTree) InsertElem(key string, val []byte, tombstone ...bool) {
 	data := new(Data)
-	data.value = val
-	data.tombstone = false
+	data.Value = val
+	data.Tombstone = false
+	data.Timestamp = uint64(time.Now().Unix())
 	if len(tombstone) > 0 {
-		data.tombstone = tombstone[0]
+		data.Tombstone = tombstone[0]
 	}
 
 	//U slucaju da koren ne postoji
-	if bTree.root == nil {
-		bTree.root = newBTreeNode(nil) //Nema roditelja :(
-		bTree.root.keys = append(bTree.root.keys, key)
-		bTree.root.keys = BubbleSort(bTree.root.keys)
-		bTree.root.values[key] = data
-		bTree.size++
+	if bTree.Root == nil {
+		bTree.Root = NewBTreeNode(nil) //Nema roditelja :(
+		bTree.Root.keys = append(bTree.Root.keys, key)
+		bTree.Root.keys = BubbleSort(bTree.Root.keys)
+		bTree.Root.values[key] = data
+		bTree.Size++
 		return
 	}
 
-	found, node := bTree.findNode(key)
+	found, node := bTree.FindNode(key)
 
 	//Ukoliko vec postoji ne dodajemo
 	if found {
@@ -271,7 +269,7 @@ func (bTree *BTree) insertElem(key string, val []byte, tombstone ...bool) {
 	node.keys = append(node.keys, key)
 	node.values[key] = data
 	node.keys = BubbleSort(node.keys)
-	bTree.size++
+	bTree.Size++
 
 	//Ukoliko nema mesta u trenutnom cvoru
 	if len(node.keys) > int(bTree.maxKeys) {
@@ -324,18 +322,40 @@ func (bTree *BTree) insertElem(key string, val []byte, tombstone ...bool) {
 }
 
 // Logicko brisanje - postavlja tombstone na true
-func (bTree *BTree) remove(key string) {
-	found, node := bTree.findNode(key)
+func (bTree *BTree) Remove(key string) {
+	found, node := bTree.FindNode(key)
 	if !found {
 		return
 	}
-	node.values[key].tombstone = true
+	node.values[key].Tombstone = true
 }
 
-// DEVIOUS LICK
-func (t *BTree) printBTree() {
+// INORDER obilazak
+func (bTree *BTree) InorderTraverse(node *BTreeNode, keys *[]string, values *[]*Data) {
+	if node == nil {
+		return
+	}
+	for i := 0; i < len(node.children)-1; i++ {
+		bTree.InorderTraverse(node.children[i], keys, values)
+		if i < len(node.keys) {
+			*keys = append(*keys, node.keys[i])
+			*values = append(*values, node.values[node.keys[i]])
+		}
+	}
+	if len(node.children) > 0 {
+		bTree.InorderTraverse(node.children[len(node.children)-1], keys, values)
+	} else {
+		for i := 0; i < len(node.keys); i++ {
+			*keys = append(*keys, node.keys[i])
+			*values = append(*values, node.values[node.keys[i]])
+		}
+	}
+}
+
+// Ispis b stabla
+func (t *BTree) PrintBTree() {
 	var queue []*BTreeNode
-	queue = append(queue, t.root)
+	queue = append(queue, t.Root)
 	level := 0
 
 	for len(queue) > 0 {
@@ -349,7 +369,7 @@ func (t *BTree) printBTree() {
 			fmt.Print(strings.Repeat("  ", level))
 			fmt.Print("Keys: ")
 			for _, key := range current.keys {
-				if current.values[key].tombstone {
+				if current.values[key].Tombstone {
 					fmt.Print("(", key, ")", " ")
 				} else {
 					fmt.Print(key, " ")
