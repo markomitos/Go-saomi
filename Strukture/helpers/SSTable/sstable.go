@@ -33,7 +33,6 @@ type SSTable struct {
 	intervalSize uint
 	directory    string
 	bloomFilter  *BloomFilter
-	summary      *Summary
 }
 
 // ---------------- Konstruktor i inicijalizacija ----------------
@@ -48,7 +47,6 @@ func NewSSTable(size uint32, directory string) *SSTable {
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
 		sstable.bloomFilter = NewBloomFilter(size, FALSE_POSITIVE_RATE)
-		sstable.summary = new(Summary)
 	} else {
 		sstable.LoadSSTable()
 	}
@@ -77,9 +75,6 @@ func (sstable *SSTable) LoadSSTable() {
 	filterFile := sstable.OpenFile("filter.bin")
 	sstable.bloomFilter = byteToBloomFilter(filterFile)
 	filterFile.Close()
-
-	//Ucitavamo summary u OM
-	sstable.summary = sstable.ReadSummary()
 }
 
 // ------------- PAKOVANJE -------------
@@ -428,9 +423,10 @@ func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File, *os
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	summaryFile, indexFile, dataFile, filterFile, metadataFile := sstable.makeFiles()
-	sstable.summary.firstKey = keys[0]
-	sstable.summary.lastKey = keys[len(keys)-1]
-	sstable.summary.intervals = make([]*Index, 0)
+	summary := new(Summary)
+	summary.firstKey = keys[0]
+	summary.lastKey = keys[len(keys)-1]
+	summary.intervals = make([]*Index, 0)
 
 	offsetIndex := uint64(0) //offset ka indeksu(koristi se u summary)
 	offsetData := uint64(0)  //offset ka disku(koristi se u indeks tabeli)
@@ -468,7 +464,7 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 			index.offset = offsetIndex
 
 			//Ubacimo u summary
-			sstable.summary.intervals = append(sstable.summary.intervals, index)
+			summary.intervals = append(summary.intervals, index)
 
 			intervalCounter = 0
 		}
@@ -479,7 +475,7 @@ func (sstable *SSTable) Flush(keys []string, values []*Data) {
 	}
 
 	//Upis summary u summaryFile
-	_, err2 := summaryFile.Write(summaryToByte(sstable.summary))
+	_, err2 := summaryFile.Write(summaryToByte(summary))
 	if err2 != nil {
 		log.Fatal(err2)
 	}
@@ -571,21 +567,23 @@ func (sstable *SSTable) Find(key string) (bool, *Data) {
 	}
 
 	//Proveravamo da li je kljuc van opsega
-	if key < sstable.summary.firstKey || key > sstable.summary.lastKey {
+	summary := sstable.ReadSummary()
+
+	if key < summary.firstKey || key > summary.lastKey {
 		return false, nil
 	}
 
 	indexInSummary := new(Index)
 	found := false
-	for i := 1; i < len(sstable.summary.intervals); i++ {
-		if key < sstable.summary.intervals[i].key {
-			indexInSummary = sstable.summary.intervals[i-1]
+	for i := 1; i < len(summary.intervals); i++ {
+		if key < summary.intervals[i].key {
+			indexInSummary = summary.intervals[i-1]
 			found = true
 			break
 		}
 	}
 	if !found {
-		indexInSummary = sstable.summary.intervals[len(sstable.summary.intervals)-1]
+		indexInSummary = summary.intervals[len(summary.intervals)-1]
 	}
 
 	// ------ Otvaramo index tabelu ------

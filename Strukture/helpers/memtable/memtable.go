@@ -8,8 +8,7 @@ import (
 	. "project/gosaomi/b_tree"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/skiplist"
-
-	// . "project/gosaomi/sstable"
+	. "project/gosaomi/sstable"
 
 	"gopkg.in/yaml.v2"
 )
@@ -79,7 +78,7 @@ func (m *MemTableTree) Flush() {
 	m.btree = newBTree
 
 	//TODO: posalji podatke SStabeli
-	// sstable := NewSSTable(uint32(m.size))
+	sstable := NewSSTable(uint32(m.size))
 }
 
 func (m *MemTableList) Flush() {
