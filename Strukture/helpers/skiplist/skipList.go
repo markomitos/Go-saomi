@@ -10,9 +10,9 @@ import (
 )
 
 type SkipList struct {
-	maxHeight int
-	height    int
-	size      int
+	maxHeight uint
+	height    uint
+	size      uint
 	head      *SkipListNode
 }
 
@@ -25,8 +25,8 @@ type SkipListNode struct {
 	next      []*SkipListNode
 }
 
-func (s *SkipList) roll() int {
-	level := 1
+func (s *SkipList) roll() uint {
+	level := uint(1)
 	// possible ret values from rand are 0 and 1
 	// we stop shen we get a 0
 	for ; rand.Int31n(2) == 1; level++ {
@@ -43,7 +43,7 @@ func (s *SkipList) roll() int {
 	return level
 }
 
-func NewSkipList(maxh int) *SkipList {
+func NewSkipList(maxh uint) *SkipList {
 	skipList := new(SkipList)
 	skipList.maxHeight = maxh
 	skipList.height = 0
@@ -56,7 +56,7 @@ func NewSkipList(maxh int) *SkipList {
 	return skipList
 }
 
-func (s *SkipList) GetSize() int {
+func (s *SkipList) GetSize() uint {
 	return s.size
 }
 
@@ -131,7 +131,7 @@ func (s *SkipList) Put(key string, value []byte, tombstone ...bool) {
 		}
 		//Prevezujemo preostale pokazivace
 		//u slucaju da je visina naseg node-a veca od pronadjenog
-		if len(node.next) < level {
+		if uint(len(node.next)) < level {
 			s.updateNodePointers(newNode, len(node.next)-1)
 		}
 	}
@@ -187,22 +187,6 @@ func (s *SkipList) Remove(key string) {
 	s.updateHeight()
 }
 
-// func (s *SkipList) oldPrint() {
-// 	fmt.Println("-------------------------------------------------------------")
-// 	for currentLevel := s.height - 1; currentLevel >= 0; currentLevel-- {
-// 		currentNode := s.head
-// 		fmt.Print("head")
-// 		for currentNode != nil {
-// 			fmt.Print(currentNode.key)
-// 			fmt.Print(" -> ")
-// 			currentNode = currentNode.next[currentLevel]
-// 		}
-// 		fmt.Print("nil")
-// 		fmt.Println()
-// 	}
-// 	fmt.Println("-------------------------------------------------------------")
-// }
-
 // uzima sve podatke u sortiranom redosledu
 func (s *SkipList) GetAllNodes(keys *[]string, values *[]*Data) {
 
@@ -238,7 +222,7 @@ func (s *SkipList) Print() {
 	for currentLevel := s.height - 1; currentLevel >= 0; currentLevel-- {
 		fmt.Print("head -")
 		for i := 0; i < len(nodeSlice); i++ {
-			if len(nodeSlice[i].next) > currentLevel {
+			if uint(len(nodeSlice[i].next)) > currentLevel {
 				fmt.Print("> " + nodeSlice[i].key)
 				fmt.Print(" -")
 			} else {

@@ -8,6 +8,7 @@ import (
 	. "project/gosaomi/b_tree"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/skiplist"
+	. "project/gosaomi/sstable"
 
 	"gopkg.in/yaml.v2"
 )
@@ -16,8 +17,8 @@ const numberOfChildren = 3
 
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
-	WalSize           int    `yaml:"wal_size"`
-	MemtableSize      int    `yaml:"memtable_size"`
+	WalSize           uint   `yaml:"wal_size"`
+	MemtableSize      uint   `yaml:"memtable_size"`
 	MemtableStructure string `yaml:"memtable_structure"`
 }
 
@@ -27,19 +28,19 @@ type MemTableTree struct {
 }
 
 type MemTableList struct {
-	size  int
+	size  uint
 	slist *SkipList
 }
 
 // da bi mogli nad oba tipa napisati funkcije pravimo interface
 type MemTable interface {
-	Put(key []byte, value []byte, timestamp []byte)
-	Remove(key []byte, velue []byte, timestamp []byte)
+	Put(key string, value []byte, tombstone ...bool)
+	Remove(key string)
 	Flush()
 }
 
 // konstuktor za skiplistu
-func NewMemTableList(s int) *MemTableList {
+func NewMemTableList(s uint) *MemTableList {
 	m := new(MemTableList)
 	m.slist = NewSkipList(s)
 	m.size = s
@@ -48,11 +49,17 @@ func NewMemTableList(s int) *MemTableList {
 }
 
 // konstruktor za b stablo
-func NewMemTableTree(s int) *MemTableTree {
+func NewMemTableTree(s uint) *MemTableTree {
 	m := new(MemTableTree)
 	m.btree = NewBTree(numberOfChildren)
 	return m
 
+}
+
+func NewMemTable(s uint, isTree bool) *MemTable {
+	if isTree {
+		return NewBTree(s)
+	}
 }
 
 // TO DO implementirati flush za obe strukture - da isprazni memtable i stavi ga u SSTable na disku
@@ -63,11 +70,12 @@ func (m *MemTableTree) Flush() {
 	values := make([]*Data, 0)
 	m.btree.InorderTraverse(m.btree.Root, &keys, &values)
 
-	//TODO: posalji podatke SStabeli
-
-	//praznjenje b_stabla
+	//praznjenje b_stabla i rotacija
 	newBTree := NewBTree(numberOfChildren)
 	m.btree = newBTree
+
+	//TODO: posalji podatke SStabeli
+	sstable := NewSSTable(uint32(m.size))
 }
 
 func (m *MemTableList) Flush() {
@@ -87,7 +95,7 @@ func (m *MemTableList) Flush() {
 	m.slist = newSkiplist
 }
 
-func (m MemTableTree) Put(key string, value []byte, tombstone ...bool) {
+func (m *MemTableTree) Put(key string, value []byte, tombstone ...bool) {
 	if len(tombstone) > 0 {
 		m.btree.InsertElem(key, value, tombstone[0])
 	} else {
@@ -100,7 +108,12 @@ func (m MemTableTree) Put(key string, value []byte, tombstone ...bool) {
 }
 
 func (m *MemTableList) Put(key string, value []byte, tombstone ...bool) {
-	m.slist.Put(key, value)
+	if len(tombstone) > 0 {
+		m.slist.Put(key, value, tombstone[0])
+	} else {
+		m.slist.Put(key, value)
+	}
+
 	if m.slist.GetSize() == m.size {
 		m.Flush()
 	}
@@ -125,13 +138,11 @@ func main() {
 	fmt.Println(config)
 
 	// u zavisnosti sta pise u configu pravimo il btree il skiplistu -- NE MOZE OVAKO
-	// if config.MemtableStructure == "btree" {
-	// 	mem_table := newMemTableTree(config.MemtableSize)
-	// } else {
-	// 	mem_table := newMemTableList(config.MemtableSize)
-	// }
+	mem_table := NewMemTableList(config.MemtableSize)
+	if config.MemtableStructure == "btree" {
+		mem_table := NewMemTableTree(config.MemtableSize)
+	}
 
-	mem_table := NewMemTableTree(config.MemtableSize)
 	mem_table.Put("1", []byte("majmun"))
 	mem_table.Put("i", []byte("majmun"))
 	mem_table.Put("c", []byte("majmun"))
