@@ -6,6 +6,7 @@ import (
 	"log"
 
 	. "project/gosaomi/b_tree"
+	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/skiplist"
 	. "project/gosaomi/sstable"
@@ -46,7 +47,6 @@ func NewMemTableList(s uint) *MemTableList {
 	m.slist = NewSkipList(s)
 	m.size = s
 	return m
-
 }
 
 // konstruktor za b stablo
@@ -66,7 +66,8 @@ func (m *MemTableList) Print() {
 	m.slist.Print()
 }
 
-func (m *MemTableTree) Flush() {
+// sstableName - prosledjujemo u writepath-u
+func (m *MemTableTree) Flush(sstableName string) {
 	//dobavi sve sortirane podatke
 
 	keys := make([]string, 0)
@@ -77,8 +78,8 @@ func (m *MemTableTree) Flush() {
 	newBTree := NewBTree(numberOfChildren)
 	m.btree = newBTree
 
-	//TODO: posalji podatke SStabeli
-	sstable := NewSSTable(uint32(m.size))
+	sstable := NewSSTable(uint32(m.size), sstableName)
+	sstable.Flush(keys, values)
 }
 
 func (m *MemTableList) Flush() {
