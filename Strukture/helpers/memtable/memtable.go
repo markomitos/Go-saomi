@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	. "structures/b_tree/b_tree"
-	. "structures/skiplist"
+	. "project/gosaomi/b_tree"
+	. "project/gosaomi/skiplist"
 
 	"gopkg.in/yaml.v2"
 )

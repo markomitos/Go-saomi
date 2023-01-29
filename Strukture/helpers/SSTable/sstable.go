@@ -1,15 +1,15 @@
 package sstable
 
 import (
-	. "data"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
-	. "structures/bloom/bloom"
-	. "structures/wal"
+	. "project/gosaomi/bloom"
+	. "project/gosaomi/dataType"
+	. "project/gosaomi/wal"
 )
 
 // Treba ubaciti konfiguraciju

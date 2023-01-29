@@ -1,12 +1,13 @@
 package main
 
 import (
-	. "dataType"
 	"fmt"
-	"structures/b_tree/b_tree"
+	"project/gosaomi/b_tree"
+	. "project/gosaomi/dataType"
 )
 
 func main() {
+
 	bTree := b_tree.NewBTree(5)
 	bTree.InsertElem("a", []byte("monke"), true)
 	bTree.InsertElem("b", []byte("monke"))
@@ -35,7 +36,7 @@ func main() {
 	bTree.PrintBTree()
 
 	data := new(Data)
-	fmt.Print(data)
+	fmt.Println(data)
 	sortiranaMapa := bTree.InOrder()
 	for key, val := range sortiranaMapa {
 		fmt.Println("KEY: ", key, "VAL: ", val)

@@ -1,8 +1,8 @@
 package b_tree
 
 import (
-	. "dataType"
 	"fmt"
+	. "project/gosaomi/dataType"
 	"strings"
 	"time"
 )

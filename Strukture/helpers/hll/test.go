@@ -1,13 +1,12 @@
-package main
+package hll
 
 import (
 	"fmt"
 	"log"
-	"strukture/hll/hll"
 )
 
 func main() {
-	hllA, err := hll.NewHLL(10)
+	hllA, err := NewHLL(10)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package simhash
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"simhash/package/simhash"
 	"strings"
 )
 
@@ -64,7 +63,7 @@ func main() {
 
 	mapa3["ABOUT"]++
 
-	simhash.Compare(simhash.HashText(mapa1), simhash.HashText(mapa2))
-	simhash.Compare(simhash.HashText(mapa1), simhash.HashText(mapa3))
+	Compare(HashText(mapa1), HashText(mapa2))
+	Compare(HashText(mapa1), HashText(mapa3))
 
 }

@@ -1,4 +1,4 @@
-module modMemtable
+module project/gosaomi
 
 go 1.19
 
