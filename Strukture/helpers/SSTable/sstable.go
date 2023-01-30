@@ -14,6 +14,17 @@ import (
 	. "project/gosaomi/wal"
 )
 
+type SST interface {
+	NewSSTable(size uint32, directory string) //Mozda ne treba
+	makeFiles()
+	Flush(keys []string, values []*Data)
+	ReadData()
+	ReadIndex()
+	ReadSummary()
+	ReadBloom()
+	Find(key string)
+}
+
 type Index struct {
 	offset  uint64
 	keySize uint32 //Ovo cuva velicinu kljuca i pomocu toga citamo iz fajla
@@ -46,7 +57,7 @@ func NewSSTable(size uint32, directory string) *SSTable {
 	if os.IsNotExist(err) {
 		sstable.bloomFilter = NewBloomFilter(size, config.BloomFalsePositiveRate)
 	} else {
-		sstable.LoadSSTable()
+		sstable.LoadFilter()
 	}
 
 	return sstable
@@ -68,7 +79,7 @@ func (sstable *SSTable) OpenFile(filename string) *os.File {
 }
 
 // Ucitava podatke ukoliko vec postoji sstabela
-func (sstable *SSTable) LoadSSTable() {
+func (sstable *SSTable) LoadFilter() {
 	//Ucitavamo bloomfilter
 	filterFile := sstable.OpenFile("filter.bin")
 	sstable.bloomFilter = byteToBloomFilter(filterFile)
@@ -605,7 +616,7 @@ func (sstable *SSTable) Find(key string) (bool, *Data) {
 		return false, nil
 	}
 
-	// ------ Pristupamo disku i uzimamo podatak ------
+	// ------ Pristupamo disku i uzimamo podtak ------
 	dataFile := sstable.OpenFile("data.bin")
 	_, foundData := ByteToData(dataFile, currentIndex.offset)
 	dataFile.Close()

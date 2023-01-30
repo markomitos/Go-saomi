@@ -20,7 +20,7 @@ const default_BTreeNumOfChildren = 3
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
 	WalSize                int     `yaml:"wal_size"`
-	MemtableSize           int     `yaml:"memtable_size"`
+	MemtableSize           uint    `yaml:"memtable_size"`
 	MemtableStructure      string  `yaml:"memtable_structure"`
 	SStableInterval        uint    `yaml:"sstable_interval"`
 	BloomFalsePositiveRate float64 `yaml:"bloom_falsepositive_rate"`
