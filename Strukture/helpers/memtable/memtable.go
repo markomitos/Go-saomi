@@ -2,7 +2,6 @@ package skiplist
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	. "project/gosaomi/b_tree"
@@ -13,13 +12,6 @@ import (
 
 	"gopkg.in/yaml.v2"
 )
-
-type Config struct {
-	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
-	WalSize           uint   `yaml:"wal_size"`
-	MemtableSize      uint   `yaml:"memtable_size"`
-	MemtableStructure string `yaml:"memtable_structure"`
-}
 
 type MemTableTree struct {
 	size  uint
@@ -35,7 +27,7 @@ type MemTableList struct {
 type MemTable interface {
 	Put(key string, value []byte, tombstone ...bool)
 	Remove(key string)
-	Flush()
+	Flush(sstableName string)
 	Print()
 }
 
@@ -82,7 +74,7 @@ func (m *MemTableTree) Flush(sstableName string) {
 	sstable.Flush(keys, values)
 }
 
-func (m *MemTableList) Flush() {
+func (m *MemTableList) Flush(sstableName string) {
 
 	keys := make([]string, 0)
 	values := make([]*Data, 0)
@@ -132,14 +124,7 @@ func (m *MemTableTree) Remove(key string) {
 }
 
 func main() {
-	var config Config
-	configData, err := ioutil.ReadFile("config.yml")
-	if err != nil {
-		log.Fatal(err)
-	}
-	//upisuje sve iz fileu u osobine configu
-	yaml.Unmarshal(configData, &config)
-	fmt.Println(config)
+	config := GetConfig()
 
 	// u zavisnosti sta pise u configu pravimo il btree il skiplistu -- NE MOZE OVAKO
 	var mem_table MemTable

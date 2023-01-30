@@ -44,7 +44,7 @@ func main() {
 	}
 
 	//SSTABELA
-	sstable := NewSSTable(uint32(bTree.Size), "sstable-1")
+	sstable := NewSSTableMulti(uint32(bTree.Size), "sstable-1")
 	sstable.Flush(keys, values)
 	// sstable.ReadData()
 	// sstable.ReadIndex()

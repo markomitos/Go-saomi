@@ -7,8 +7,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// var Configuration *Config //GLOBALAN CONFIG
-
 // Default vrednosti
 const default_WalSize = 10
 const default_MemtableSize = 10
@@ -16,6 +14,7 @@ const default_MemtableStructure = "skiplist"
 const default_SStableInterval = 128
 const default_BloomFalsePositiveRate = 2.0
 const default_BTreeNumOfChildren = 3
+const default_SSTableFileConfig = "single"
 
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
@@ -25,6 +24,7 @@ type Config struct {
 	SStableInterval        uint    `yaml:"sstable_interval"`
 	BloomFalsePositiveRate float64 `yaml:"bloom_falsepositive_rate"`
 	BTreeNumOfChildren     uint    `yaml:"btree_num_of_children"`
+	SSTableFileConfig      string  `yaml:"sstable_file_config"`
 }
 
 // Ukoliko unutar config.yml fali neki atribut
@@ -36,9 +36,11 @@ func initializeConfig() *Config {
 	c.SStableInterval = default_SStableInterval
 	c.BloomFalsePositiveRate = default_BloomFalsePositiveRate
 	c.BTreeNumOfChildren = default_BTreeNumOfChildren
+	c.SSTableFileConfig = default_SSTableFileConfig
 	return c
 }
 
+//Dobavlja konfiguraciju iz fajla
 func GetConfig() *Config {
 	c := initializeConfig()
 
@@ -71,7 +73,11 @@ func GetConfig() *Config {
 	}
 
 	if c.BTreeNumOfChildren == 0 {
+		c.BTreeNumOfChildren = default_BTreeNumOfChildren
+	}
 
+	if c.SSTableFileConfig == "" {
+		c.SSTableFileConfig = default_SSTableFileConfig
 	}
 
 	return c
