@@ -43,10 +43,50 @@ func NewSSTableSingle(size uint32, directory string) *SSTableSingle {
 	if os.IsNotExist(err) {
 		sstable.bloomFilter = NewBloomFilter(size, config.BloomFalsePositiveRate)
 	} else {
-		// sstable.LoadFilter()
+		sstable.LoadFilter() //Treba popraviti i videti da li je potrebno uopste
 	}
 
 	return sstable
+}
+
+func (sstable *SSTableSingle) LoadFilter(){
+	//Otvaramo fajl i citamo header
+	sstableFile := sstable.OpenFile("sstable.bin")
+
+	//Citamo velicinu data zone
+	bytes := make([]byte,8)
+	_, err := sstableFile.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	dataSize := binary.BigEndian.Uint64(bytes)
+
+	//Citamo velicinu indeksne zone
+	bytes = make([]byte,8)
+	_, err = sstableFile.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	indexSize := binary.BigEndian.Uint64(bytes)
+
+	//Citamo velicinu summary zone
+	bytes = make([]byte,8)
+	_, err = sstableFile.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	summarySize := binary.BigEndian.Uint64(bytes)
+
+	//Offseti na pocetke zona
+	dataStart := uint64(24)
+	indexStart := dataStart + dataSize
+	summaryStart := indexStart + indexSize
+	filterStart := summaryStart + summarySize
+
+
+	//Ucitavamo bloomfilter
+	sstableFile.Seek(int64(filterStart),0)
+	sstable.bloomFilter = byteToBloomFilter(sstableFile)
 }
 
 // Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
@@ -155,12 +195,12 @@ func (sstable *SSTableSingle) Flush(keys []string, values []*Data) {
 
 	// 2. element je velicina indeksne zone
 	bytesTemp := make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, uint64(len(indexBytes)))
+	binary.BigEndian.PutUint64(bytesTemp, uint64(len(indexBytes)))
 	bytes = append(bytes, bytesTemp...)
 
 	// 3. element je velicina summary zone
 	bytesTemp = make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, uint64(len(summaryBytes)))
+	binary.BigEndian.PutUint64(bytesTemp, uint64(len(summaryBytes)))
 	bytes = append(bytes, bytesTemp...)
 
 	//Upisujemo header u fajl

@@ -44,7 +44,7 @@ func initializeConfig() *Config {
 func GetConfig() *Config {
 	c := initializeConfig()
 
-	configData, err := ioutil.ReadFile("config.yml")
+	configData, err := ioutil.ReadFile("config/config.yml")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func GetConfig() *Config {
 		c.MemtableSize = default_MemtableSize
 	}
 
-	if c.MemtableStructure == "" {
+	if c.MemtableStructure != "skiplist" && c.MemtableStructure != "b_tree" {
 		c.MemtableStructure = default_MemtableStructure
 	}
 
@@ -76,7 +76,7 @@ func GetConfig() *Config {
 		c.BTreeNumOfChildren = default_BTreeNumOfChildren
 	}
 
-	if c.SSTableFileConfig == "" {
+	if c.SSTableFileConfig != "single" && c.SSTableFileConfig != "multiple" {
 		c.SSTableFileConfig = default_SSTableFileConfig
 	}
 
