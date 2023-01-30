@@ -18,6 +18,21 @@ type SSTableSingle struct {
 	bloomFilter  *BloomFilter
 }
 
+// Otvara trazenu datoteku od sstabele
+func (sstable *SSTableSingle) OpenFile(filename string) *os.File {
+	path, err2 := filepath.Abs("files/sstable/" + sstable.directory)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+
+	file, err := os.Open(path + "/" + filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return file
+}
+
 func NewSSTableSingle(size uint32, directory string) *SSTableSingle {
 	config := GetConfig()
 	sstable := new(SSTableSingle)
@@ -35,7 +50,7 @@ func NewSSTableSingle(size uint32, directory string) *SSTableSingle {
 }
 
 // Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
-func (sstable *SSTableSingle) makeFiles() (*os.File, *os.File) {
+func (sstable *SSTableSingle) makeFiles() []*os.File {
 	//kreiramo novi direktorijum
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
@@ -63,14 +78,17 @@ func (sstable *SSTableSingle) makeFiles() (*os.File, *os.File) {
 		log.Fatal(err7)
 	}
 
-	return sstableFile, metadata
+	files := make([]*os.File, 0)
+	files = append(files,sstableFile, metadata)
+	return files
 }
 
 // Iterira se kroz string kljuceve i ubacuje u:
 // Bloomfilter
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTableSingle) Flush(keys []string, values []*Data) {
-	sstableFile, metadataFile := sstable.makeFiles()
+	files := sstable.makeFiles()
+	sstableFile, metadataFile := files[0], files[1]
 	summary := new(Summary)
 	summary.FirstKey = keys[0]
 	summary.LastKey = keys[len(keys)-1]
@@ -86,7 +104,6 @@ func (sstable *SSTableSingle) Flush(keys []string, values []*Data) {
 
 	//Cuva podatke o index zoni
 	indexBytes := make([]byte, 0)
-	indexLen := 0
 
 	intervalCounter := uint(sstable.intervalSize) //Kada dostigne postavljeni interval zapisuje novi Offset indeksnog intervala
 	for i := 0; i < len(keys); i++ {
@@ -152,25 +169,25 @@ func (sstable *SSTableSingle) Flush(keys []string, values []*Data) {
 		log.Fatal(err)
 	}
 
-	//DATA
+	//------------ DATA ------------
 	_, err = sstableFile.Write(dataBytes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//INDEX
+	//------------ INDEX ------------
 	_, err = sstableFile.Write(indexBytes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//SUMMARY
+	//------------ SUMMARY ------------
 	_, err = sstableFile.Write(summaryBytes)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//FILTER
+	//------------ FILTER ------------
 	_, err = sstableFile.Write(bloomFilterToByte(sstable.bloomFilter))
 	if err != nil {
 		log.Fatal(err)
@@ -183,4 +200,99 @@ func (sstable *SSTableSingle) Flush(keys []string, values []*Data) {
 	//Zatvaranje fajlova
 	sstableFile.Close()
 	metadataFile.Close()
+}
+
+func (sstable *SSTableSingle) Find(Key string) (bool, *Data) {
+
+	//Otvaramo fajl i citamo header
+	sstableFile := sstable.OpenFile("sstable.bin")
+
+	//Citamo velicinu data zone
+	bytes := make([]byte,8)
+	_, err := sstableFile.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	dataSize := binary.BigEndian.Uint64(bytes)
+
+	//Citamo velicinu indeksne zone
+	bytes = make([]byte,8)
+	_, err = sstableFile.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	indexSize := binary.BigEndian.Uint64(bytes)
+
+	//Citamo velicinu summary zone
+	bytes = make([]byte,8)
+	_, err = sstableFile.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	summarySize := binary.BigEndian.Uint64(bytes)
+
+	//Offseti na pocetke zona
+	dataStart := uint64(24)
+	indexStart := dataStart + dataSize
+	summaryStart := indexStart + indexSize
+	filterStart := summaryStart + summarySize
+
+
+	//Ucitavamo bloomfilter
+	sstableFile.Seek(int64(filterStart),0)
+	sstable.bloomFilter = byteToBloomFilter(sstableFile)
+
+	//Proveravamo preko BloomFiltera da li uopste treba da pretrazujemo
+	if !sstable.bloomFilter.IsInBloom([]byte(Key)) {
+		sstableFile.Close()
+		return false, nil
+	}
+
+	//Proveravamo da li je kljuc van opsega
+	sstableFile.Seek(int64(summaryStart), 0)
+	summary :=  byteToSummary(sstableFile)
+
+	if Key < summary.FirstKey || Key > summary.LastKey {
+		sstableFile.Close()
+		return false, nil
+	}
+
+	indexInSummary := new(Index)
+	found := false
+	for i := 1; i < len(summary.Intervals); i++ {
+		if Key < summary.Intervals[i].Key {
+			indexInSummary = summary.Intervals[i-1]
+			found = true
+			break
+		}
+	}
+	if !found {
+		indexInSummary = summary.Intervals[len(summary.Intervals)-1]
+	}
+
+	// ------ Otvaramo index tabelu ------
+	found = false
+	sstableFile.Seek(int64(indexInSummary.Offset + indexStart), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+	currentIndex := new(Index)
+
+	//trazimo redom
+	for i := 0; i < int(sstable.intervalSize); i++ {
+		currentIndex = byteToIndex(sstableFile)
+		if currentIndex.Key == Key {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		sstableFile.Close()
+		return false, nil
+	}
+
+	// ------ Pristupamo disku i uzimamo podatak ------
+	sstableFile.Seek(int64(currentIndex.Offset + dataStart), 0)
+	_, foundData := ByteToData(sstableFile)
+
+	sstableFile.Close()
+	return true, foundData
 }

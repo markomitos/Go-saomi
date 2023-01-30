@@ -145,8 +145,10 @@ func dataToByte(Key string, data *Data) []byte {
 }
 
 // Odpakuje sa zapisa na disku u podatak
-func ByteToData(file *os.File, Offset uint64) (string, *Data) {
-	file.Seek(int64(Offset), 0)
+func ByteToData(file *os.File, Offset... uint64) (string, *Data) {
+	if len(Offset) > 0 {
+		file.Seek(int64(Offset[0]), 0)
+	}
 	entry := ReadEntry(file)
 
 	//Tombstone
@@ -358,7 +360,7 @@ func byteToBloomFilter(file *os.File) *BloomFilter {
 }
 
 // Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
-func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File, *os.File) {
+func (sstable *SSTable) makeFiles() []*os.File {
 	//kreiramo novi direktorijum
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
@@ -401,14 +403,17 @@ func (sstable *SSTable) makeFiles() (*os.File, *os.File, *os.File, *os.File, *os
 		log.Fatal(err7)
 	}
 
-	return summary, index, data, filter, metadata
+	files := make([]*os.File, 0)
+	files = append(files,summary, index, data, filter, metadata)
+	return files
 }
 
 // Iterira se kroz string kljuceve i ubacuje u:
 // Bloomfilter
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTable) Flush(keys []string, values []*Data) {
-	summaryFile, indexFile, dataFile, filterFile, metadataFile := sstable.makeFiles()
+	files := sstable.makeFiles()
+	summaryFile, indexFile, dataFile, filterFile, metadataFile := files[0],files[1],files[2],files[3],files[4]
 	summary := new(Summary)
 	summary.FirstKey = keys[0]
 	summary.LastKey = keys[len(keys)-1]

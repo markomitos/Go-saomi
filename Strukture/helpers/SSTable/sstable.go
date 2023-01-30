@@ -1,18 +1,15 @@
 package sstable
 
 import (
+	"os"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 )
 
 type SST interface {
-	makeFiles()
+	makeFiles() []*os.File
 	Flush(keys []string, values []*Data)
-	ReadData()
-	ReadIndex()
-	ReadSummary()
-	ReadBloom()
-	Find(key string)
+	Find(key string) (bool, *Data)
 }
 
 type Index struct {
@@ -36,5 +33,5 @@ func NewSSTable(size uint32, directory string) *SST {
 		sstable = NewSSTableMulti(size, directory)
 	}
 
-	return sstable
+	return &sstable
 }
