@@ -34,7 +34,6 @@ type Config struct {
 	LsmMaxLevel            uint    `yaml:"lsm_max_level"`
 	TokenBucketCap         int     `yaml:"token_cap"`
 	TokenBucketRate        int     `yaml:"token_rate"`
-	LsmMaxLevel	uint `yaml:"lsm_max_level"`
 	CompactionType string `yaml:"compaction_type"`
 }
 
