@@ -1,128 +1,33 @@
-package skiplist
+package memtable
 
 import (
 	"fmt"
 	"log"
-
-	. "project/gosaomi/b_tree"
 	. "project/gosaomi/config"
-	. "project/gosaomi/dataType"
-	. "project/gosaomi/skiplist"
-	. "project/gosaomi/sstable"
 
 	"gopkg.in/yaml.v2"
 )
-
-
-type MemTableTree struct {
-	size  uint
-	btree *BTree
-}
-
-type MemTableList struct {
-	size  uint
-	slist *SkipList
-}
 
 // da bi mogli nad oba tipa napisati funkcije pravimo interface
 type MemTable interface {
 	Put(key string, value []byte, tombstone ...bool)
 	Remove(key string)
-	Flush(sstableName string)
+	Flush()
 	Print()
 }
 
-// konstuktor za skiplistu
-func NewMemTableList(s uint) *MemTableList {
-	m := new(MemTableList)
-	m.slist = NewSkipList(s)
-	m.size = s
-	return m
-}
-
-// konstruktor za b stablo
-func NewMemTableTree(s uint) *MemTableTree {
+//Konstruktor za memtabelu
+func NewMemTable(s uint) MemTable{
 	config := GetConfig()
-	m := new(MemTableTree)
-	m.size = s
-	m.btree = NewBTree(config.BTreeNumOfChildren)
-	return m
-
-}
-
-func (m *MemTableTree) Print() {
-	m.btree.PrintBTree()
-}
-
-func (m *MemTableList) Print() {
-	m.slist.Print()
-}
-
-// sstableName - prosledjujemo u writepath-u
-func (m *MemTableTree) Flush(sstableName string) {
-	config := GetConfig()
-
-	//dobavi sve sortirane podatke
-	keys := make([]string, 0)
-	values := make([]*Data, 0)
-	m.btree.InorderTraverse(m.btree.Root, &keys, &values)
-
-	//praznjenje b_stabla i rotacija
-	newBTree := NewBTree(config.BTreeNumOfChildren)
-	m.btree = newBTree
-
-	sstable := NewSSTable(uint32(m.size), sstableName)
-	sstable.Flush(keys, values)
-}
-
-func (m *MemTableList) Flush(sstableName string) {
-
-	keys := make([]string, 0)
-	values := make([]*Data, 0)
-	//dobavi sve sortirane podatke
-	m.slist.GetAllNodes(&keys, &values)
-
-	//TODO: posalji podatke SStabeli
-	fmt.Println(keys)
-	for i := 0; i < 10; i++ {
-		fmt.Println(values[i])
+	var memTable MemTable
+	if config.MemtableStructure == "b_tree"{
+		memTable = NewMemTableTree(s)
+	} else if config.MemtableStructure == "skiplist"{
+		memTable = NewMemTableList(s)
 	}
-	//praznjenje skipliste
-	newSkiplist := NewSkipList(m.size)
-	m.slist = newSkiplist
+	return memTable
 }
 
-func (m *MemTableTree) Put(key string, value []byte, tombstone ...bool) {
-	if len(tombstone) > 0 {
-		m.btree.InsertElem(key, value, tombstone[0])
-	} else {
-		m.btree.InsertElem(key, value)
-	}
-
-	if m.btree.Size == m.size {
-		m.Flush()
-	}
-}
-
-func (m *MemTableList) Put(key string, value []byte, tombstone ...bool) {
-	if len(tombstone) > 0 {
-		m.slist.Put(key, value, tombstone[0])
-	} else {
-		m.slist.Put(key, value)
-	}
-
-	if m.slist.GetSize() == m.size {
-		m.Flush()
-	}
-}
-
-func (m *MemTableList) Remove(key string) {
-	m.slist.Remove(key)
-}
-
-func (m *MemTableTree) Remove(key string) {
-	m.btree.Remove(key)
-}
 
 func main() {
 	config := GetConfig()

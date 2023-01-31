@@ -6,8 +6,9 @@ import (
 	"io"
 	"log"
 	"os"
+	. "project/gosaomi/config"
+	. "project/gosaomi/dataType"
 	"strconv"
-	"time"
 )
 
 /*
@@ -47,8 +48,8 @@ type WriteAheadLog struct {
 	buffer_capacity uint
 	buffer_size     uint
 	directory       string
-	current_offset  uint64
-	low_water_mark  uint64
+	current_offset  uint
+	low_water_mark  uint
 }
 
 // struktura za svaki pojedinac zapis
@@ -63,20 +64,29 @@ type Entry struct {
 }
 
 // Konstruktor jednog unosa i automatski taj unos ubacuje u buffer
-func (wal *WriteAheadLog) NewEntry(Key []byte, Value []byte) *Entry {
+func (wal *WriteAheadLog) NewEntry(key string, data *Data) *Entry {
 	e := new(Entry)
+
+	keyBytes := []byte(key)
 
 	//izracunaj duzinu kljuca i vrednosti
 	e.Key_size = make([]byte, 8)
 	e.Value_size = make([]byte, 8)
-	binary.BigEndian.PutUint64(e.Key_size, uint64(int64(len(Key))))
-	binary.BigEndian.PutUint64(e.Value_size, uint64(int64(len(Value))))
+	binary.BigEndian.PutUint64(e.Key_size, uint64(int64(len(keyBytes))))
+	binary.BigEndian.PutUint64(e.Value_size, uint64(int64(len(data.Value))))
 
-	e.Key = Key
-	e.Value = Value
+	e.Key = keyBytes
+	e.Value = data.Value
 	e.Timestamp = make([]byte, 8)
-	binary.BigEndian.PutUint64(e.Timestamp, uint64(time.Now().Unix()))
-	e.Tombstone = make([]byte, 1)
+	binary.BigEndian.PutUint64(e.Timestamp, data.Timestamp)
+
+	tombstoneBytes := make([]byte, 0)
+	if data.Tombstone {
+		tombstoneBytes = append(tombstoneBytes, uint8(1))
+	} else {
+		tombstoneBytes = append(tombstoneBytes, uint8(0))
+	}
+	e.Tombstone = tombstoneBytes
 
 	//ubaci sve u niz bajtova da bi napravio Crc
 	bytes := make([]byte, 0)
@@ -120,6 +130,8 @@ func BytesToEntry(bytes []byte) *Entry {
 
 // inicijalizuje Write Ahead Log i ukoliko logovi vec postoje povecava offset do posle poslednjeg loga
 func NewWriteAheadLog(directory string) *WriteAheadLog {
+	config := GetConfig()
+
 	//ukoliko ne postoji napravi direktorijum
 	_, err := os.Stat(directory)
 	if os.IsNotExist(err) {
@@ -143,8 +155,8 @@ func NewWriteAheadLog(directory string) *WriteAheadLog {
 
 	//zadajemo inicijalne vrednosti
 	wal.buffer = make([]byte, 0)
-	wal.low_water_mark = 100
-	wal.buffer_capacity = 100
+	wal.low_water_mark = uint64(config.WalWaterMark)
+	wal.buffer_capacity = uint(config.WalBufferCapacity)
 	wal.buffer_size = 0
 	return wal
 
