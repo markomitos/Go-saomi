@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"project/gosaomi/b_tree"
 	// . "project/gosaomi/dataType"
 	. "project/gosaomi/lsm"
@@ -35,6 +36,49 @@ func main() {
 	bTree.InsertElem("z", []byte("monke"))
 	bTree.Remove("g")
 	// bTree.PrintBTree()
+
+	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
+	for true {
+		fmt.Println("1 - PUT")
+		fmt.Println("2 - GET")
+		fmt.Println("3 - DELETE")
+		fmt.Println("4 - LIST")
+		fmt.Println("5 - RANGE SCAN")
+		fmt.Println("X - Izlaz iz programa")
+		fmt.Println("=======================================")
+		fmt.Print("Izaberite opciju: ")
+
+		var input string
+		n, err := fmt.Scanln(&input)
+
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+			continue
+		}
+
+		switch input {
+		case "1":
+			fmt.Println("1")
+		case "2":
+			fmt.Println("2")
+		case "3":
+			fmt.Println("3")
+		case "4":
+			fmt.Println("4")
+		case "5":
+			fmt.Println("5")
+		case "x":
+			fmt.Println("Vidimo se sledeci put!")
+			return
+		case "X":
+			fmt.Println("Vidimo se sledeci put!")
+			return
+		default:
+			fmt.Println("Neispravan unos. Molimo vas probajte opet.")
+		}
+	}
 
 	// keys := make([]string, 0)
 	// values := make([]*Data, 0)
