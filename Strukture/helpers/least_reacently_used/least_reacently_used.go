@@ -2,14 +2,10 @@ package least_reacently_used
 
 import (
 	"container/list"
+	. "project/gosaomi/dataType"
 )
 
 // Koristicemo mapu i linked listu za LRU
-
-type Cache interface {
-	Get(key string) string
-	Set(key, value string)
-}
 
 type LRUCache struct {
 	m   map[string]*cacheMapElement
@@ -39,7 +35,7 @@ func (c *LRUCache) Get(key string) string {
 	return v.value
 }
 
-func (c *LRUCache) Set(key, value string) {
+func (c *LRUCache) Set(key string, data *Data) {
 	v, ok := c.m[key]
 	if !ok {
 		el := c.l.PushFront(key)

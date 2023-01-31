@@ -149,7 +149,9 @@ func IncreaseLsmLevel(level uint32){
 func RenameLevel(level uint32){
 	lsm := ReadLsm()
 	if(lsm.LevelSizes[level-1] % 2 != 0){
-		err := os.Rename("sstable"+strconv.FormatUint(uint64(lsm.LevelSizes[level-1]), 10), "sstable1")
+
+		err := os.Rename("files/sstable/level"+strconv.FormatUint(uint64(level), 10)+"/sstable"+strconv.FormatUint(uint64(lsm.LevelSizes[level-1]), 10),
+		"files/sstable/level"+strconv.FormatUint(uint64(level), 10) + "/sstable1")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -183,14 +185,14 @@ func RunCompact(){
 	lsm := ReadLsm()
 	//Iteriramo po levelima
 	//Preskacemo poslednji level jer se tu ne radi kompakcija
-	for i:=uint32(1); i < lsm.MaxLevel-1; i++{
+	for i:=uint32(1); i < lsm.MaxLevel; i++{
 		if lsm.LevelSizes[i-1] >= 2{
 			lsm.Compact(i)
 		}
 	}
 
 	//Iteriramo po levelima i preimenujemo fajlove ukoliko je potrebno
-	for i:=uint32(1); i < lsm.MaxLevel-1; i++{
+	for i:=uint32(1); i < lsm.MaxLevel; i++{
 		RenameLevel(i)
 	}
 }
@@ -214,7 +216,7 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 	size := uint32(math.Pow(2, float64(currentLevel-1)) * float64(config.MemtableSize))
 
 	//Uzimamo po 2 sstabele i radimo kompakciju nad njima
-	for index := uint32(0); index < lsm.LevelSizes[currentLevel-1]; index += 2{
+	for index := uint32(1); index < lsm.LevelSizes[currentLevel-1]; index += 2{
 		
 		firstSStable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, index))
 		secondSStable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, index+1))
@@ -242,8 +244,6 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	file1, data1End  := firstSStable.GoToData()
 	file2, data2End  := secondSStable.GoToData()
-	defer file1.Close()
-	defer file2.Close()
 
 	mergedKeys := make([]string,0)
 	mergedData := make([]*Data,0)
@@ -339,6 +339,8 @@ func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 		}
 
 	}
+	file1.Close()
+	file2.Close()
 	return mergedKeys, mergedData
 }
 
@@ -355,7 +357,7 @@ func isEndOfData(file *os.File, dataEnd uint64) bool{
 }
 
 func deleteSSTable(directory string){
-	err := os.Remove("files/sstable"+directory)
+	err := os.RemoveAll("files/sstable/"+directory)
 	if err != nil{
 		log.Fatal(err)
 	}

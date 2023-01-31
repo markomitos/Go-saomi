@@ -1,7 +1,6 @@
 package sstable
 
 import (
-	"encoding/binary"
 	"fmt"
 	"log"
 	"os"
@@ -10,7 +9,6 @@ import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	merkle "project/gosaomi/merkle"
-	. "project/gosaomi/wal"
 )
 
 type SSTableMulti struct {
@@ -191,18 +189,18 @@ func (sstable *SSTableMulti) Flush(keys []string, values []*Data) {
 
 // ------------ PRINTOVANJE ------------
 
-func (sstable *SSTableMulti) ReadData() {
-	file := sstable.OpenFile("data.bin")
+// func (sstable *SSTableMulti) ReadData() {
+// 	file := sstable.OpenFile("data.bin")
 
-	for {
-		entry := ReadEntry(file)
-		if entry == nil {
-			break
-		}
-		entry.Print()
-	}
-	file.Close()
-}
+// 	for {
+// 		entry := ReadEntry(file)
+// 		if entry == nil {
+// 			break
+// 		}
+// 		entry.Print()
+// 	}
+// 	file.Close()
+// }
 
 func (sstable *SSTableMulti) ReadIndex() {
 	file := sstable.OpenFile("index.bin")
@@ -310,33 +308,6 @@ func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 }
 
 // ------------ DOBAVLJANJE PODATAKA ------------
-//Cita sve podatke i vraca 2 niza
-func (sstable *SSTableMulti) GetData() ([]string, []*Data){
-	file := sstable.OpenFile("data.bin")
-	keys := make([]string,0)
-	dataArray := make([]*Data, 0)
-
-	for {
-		entry := ReadEntry(file)
-		if entry == nil {
-			break
-		}
-		keys = append(keys, string(entry.Key))
-		data := new(Data)
-		data.Value = entry.Value
-		//Tombstone
-		data.Tombstone = false
-		if entry.Tombstone[0] == byte(uint8(1)) {
-			data.Tombstone = true
-		}
-		data.Timestamp = binary.BigEndian.Uint64(entry.Timestamp)
-		dataArray = append(dataArray, data)
-	}
-	file.Close()
-
-	return keys, dataArray
-}
-
 //Otvara fajl i postavlja pokazivac na pocetak data zone
 //vraca pokazivac na taj fajl i velicinu data zone
 func (sstable *SSTableMulti) GoToData()  (*os.File, uint64){

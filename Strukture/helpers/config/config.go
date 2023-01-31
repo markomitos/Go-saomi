@@ -73,6 +73,8 @@ func GetConfig() *Config {
 
 	if c.WalWaterMark < 10 {
 		c.WalWaterMark = default_WalWaterMark
+	} else if c.WalWaterMark > 99999 {
+		c.WalWaterMark = 99999
 	}
 
 	if c.MemtableSize == 0 {

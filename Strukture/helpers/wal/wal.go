@@ -8,7 +8,6 @@ import (
 	"os"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
-	. "project/gosaomi/memtable"
 	"strconv"
 	"time"
 )
@@ -34,11 +33,11 @@ const (
 	VALUE_SIZE_SIZE = 8
 
 	CRC_START        = 0
-	TIMESTAMP_START  = CRC_START + CRC_SIZE
-	TOMBSTONE_START  = TIMESTAMP_START + TIMESTAMP_SIZE
-	KEY_SIZE_START   = TOMBSTONE_START + TOMBSTONE_SIZE
-	VALUE_SIZE_START = KEY_SIZE_START + KEY_SIZE_SIZE
-	KEY_START        = VALUE_SIZE_START + VALUE_SIZE_SIZE
+	TIMESTAMP_START  = CRC_START + CRC_SIZE //4
+	TOMBSTONE_START  = TIMESTAMP_START + TIMESTAMP_SIZE //12
+	KEY_SIZE_START   = TOMBSTONE_START + TOMBSTONE_SIZE //13
+	VALUE_SIZE_START = KEY_SIZE_START + KEY_SIZE_SIZE //21
+	KEY_START        = VALUE_SIZE_START + VALUE_SIZE_SIZE //29
 )
 
 func CRC32(data []byte) uint32 {
@@ -66,7 +65,7 @@ type Entry struct {
 }
 
 // Konstruktor jednog unosa
-func (wal *WriteAheadLog) NewEntry(key string, data *Data) *Entry {
+func NewEntry(key string, data *Data) *Entry {
 	e := new(Entry)
 
 	keyBytes := []byte(key)
@@ -241,12 +240,18 @@ func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
 // zapisuje direktno entry
 func (wal *WriteAheadLog) WriteEntry(entry *Entry) {
 	//otvaramo file u append only rezimu
-	wal.current_offset--
-	filename := wal.generateSegmentFilename()
-	wal.current_offset++
+	offset := wal.current_offset
+	if offset != 0{
+		offset--
+	}
+	filename := wal.generateSegmentFilename(offset)
 	file, err := os.OpenFile(filename, os.O_APPEND, 0600)
 	if err != nil {
-		log.Fatal(err)
+		if os.IsNotExist(err){
+			file, err = os.Create(filename)
+		} else {
+			log.Fatal(err)
+		}
 	}
 
 	defer file.Close()
@@ -257,6 +262,11 @@ func (wal *WriteAheadLog) WriteEntry(entry *Entry) {
 		log.Fatal(err)
 	}
 	file.Close()
+
+	//Proverava da li je prekoracio granicu za brisanje starih
+	if wal.current_offset > wal.low_water_mark {
+		wal.deleteOldSegments()
+	}
 }
 
 // cita niz bitova i pretvara ih u klasu entity za dalju obradu
@@ -346,11 +356,17 @@ func (wal *WriteAheadLog) ReadAllLogs() {
 	}
 }
 
-func (wal *WriteAheadLog) InitiateMemTable() MemTable {
-	config := GetConfig()
-	memTable := NewMemTable(config.MemtableSize)
+//Funkcija ucitava najnoviji segment WAL-a koji ce memtabela koristiti pri kreiranju
+//da ne bi bila izgubljena u OM
+func (wal *WriteAheadLog) InitiateMemTable() ([]string,[]*Data) {
+	keys := make([]string,0)
+	dataArr := make([]*Data, 0)
+
 	file, err := os.Open(wal.generateSegmentFilename())
 	if err != nil {
+		if os.IsNotExist(err){
+			return keys, dataArr
+		}
 		log.Fatal(err)
 	}
 
@@ -366,10 +382,12 @@ func (wal *WriteAheadLog) InitiateMemTable() MemTable {
 		timestamp := binary.BigEndian.Uint64(entry.Timestamp)
 		data := NewData(entry.Value, tombstone, timestamp)
 		key := string(entry.Value)
-		memTable.Put(key, data)
+
+		keys = append(keys, key)
+		dataArr = append(dataArr, data)
 	}
 	file.Close()
-	return memTable
+	return keys, dataArr
 }
 
 func main() {
@@ -379,7 +397,7 @@ func main() {
 	data.Timestamp = uint64(time.Now().Unix())
 	data.Tombstone = true
 	for i := 0; i < 101; i++ {
-		e := wal.NewEntry(strconv.Itoa(i*125), data)
+		e := NewEntry(strconv.Itoa(i*125), data)
 		e.Print()
 	}
 	wal.ReadAllLogs()

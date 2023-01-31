@@ -4,7 +4,6 @@ import (
 	"fmt"
 	. "project/gosaomi/dataType"
 	"strings"
-	"time"
 )
 
 type BTreeNode struct {
@@ -238,15 +237,7 @@ func (bTree *BTree) rotateNodes(node *BTreeNode, sibling *BTreeNode, isRight boo
 }
 
 // Ubacuje kljuc
-func (bTree *BTree) InsertElem(key string, val []byte, tombstone ...bool) {
-	data := new(Data)
-	data.Value = val
-	data.Tombstone = false
-	data.Timestamp = uint64(time.Now().Unix())
-	if len(tombstone) > 0 {
-		data.Tombstone = tombstone[0]
-	}
-
+func (bTree *BTree) Put(key string, data *Data) {
 	//U slucaju da koren ne postoji
 	if bTree.Root == nil {
 		bTree.Root = NewBTreeNode(nil) //Nema roditelja :(

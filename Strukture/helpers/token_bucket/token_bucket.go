@@ -27,7 +27,7 @@ func NewTokenBucket() *TokenBucket {
 	}
 }
 
-func (b *TokenBucket) Take(tokens int) bool {
+func (b *TokenBucket) Take() bool {
 	b.lock <- struct{}{}
 	// Sluzi za resavanje race conditiona
 	// Znaci da sprecava istovremene goroutine odnosno threadove
@@ -49,11 +49,11 @@ func (b *TokenBucket) Take(tokens int) bool {
 		b.tokens = b.capacity
 	}
 
-	if b.tokens < tokens {
+	if b.tokens < 1 {
 
 		return false
 	}
-	b.tokens -= tokens
+	b.tokens -= 1
 	return true
 }
 
@@ -62,7 +62,7 @@ func main() {
 	bucket := NewTokenBucket()
 	for i := 0; i < 200; i++ {
 		// Saljemo zahtev ovo ce se raditi eksterno od strane ostatka sistema
-		if bucket.Take(1) {
+		if bucket.Take() {
 			fmt.Println("Zahtev odobren")
 		} else {
 			fmt.Println("Zahtev neodobren")

@@ -2,40 +2,51 @@ package main
 
 import (
 	"fmt"
-	"project/gosaomi/b_tree"
+
+	// . "project/gosaomi/dataType"
 	// . "project/gosaomi/dataType"
 	. "project/gosaomi/lsm"
+	. "project/gosaomi/memtable"
+	. "project/gosaomi/token_bucket"
+	. "project/gosaomi/wal"
+	// . "project/gosaomi/writepath"
 	// . "project/gosaomi/sstable"
 )
 
 func main() {
+	//Ucitavamo strukturu fajlova
+	InitializeLsm()
+	
+	//Ucitavamo CACHE (LRU)
 
-	bTree := b_tree.NewBTree(3)
-	bTree.InsertElem("a", []byte("monke"), true)
-	bTree.InsertElem("b", []byte("monke"))
-	bTree.InsertElem("c", []byte("monke"))
-	bTree.InsertElem("d", []byte("monke"))
-	bTree.InsertElem("e", []byte("monke"))
-	bTree.InsertElem("f", []byte("monke"))
-	bTree.InsertElem("p", []byte("monke"))
-	bTree.InsertElem("m", []byte("monke"))
-	bTree.InsertElem("q", []byte("monk"))
-	bTree.InsertElem("o", []byte("monke"))
-	bTree.InsertElem("s", []byte("monke"))
-	bTree.InsertElem("k", []byte("monke"))
-	bTree.InsertElem("j", []byte("monk"))
-	bTree.InsertElem("t", []byte("monke"))
-	bTree.InsertElem("g", []byte("monk"))
-	bTree.InsertElem("r", []byte("monke"))
-	bTree.InsertElem("l", []byte("monke"))
-	bTree.InsertElem("x", []byte("giraffe"))
-	bTree.InsertElem("u", []byte("monk"))
-	bTree.InsertElem("h", []byte("monke"))
-	bTree.InsertElem("v", []byte("monke"))
-	bTree.InsertElem("n", []byte("monke"))
-	bTree.InsertElem("z", []byte("monke"))
-	bTree.Remove("g")
-	// bTree.PrintBTree()
+	//Na pocetku ucitavamo iz WAL-a u memtabelu
+	wal := NewWriteAheadLog("files/wal")
+	memtable := LoadToMemTable(wal.InitiateMemTable())
+	fmt.Println(memtable)
+
+	//Ogranicenje brzine pristupa
+	bucket := NewTokenBucket()
+	fmt.Println(bucket)
+
+	RunCompact()
+
+	// for i:=0; i < 200; i++{
+	// 	data := new(Data)
+	// 	data.Value = []byte("majmun")
+	// 	data.Timestamp = uint64(time.Now().Unix())
+	// 	data.Tombstone = false
+	// 	key := strconv.Itoa(i)
+		
+	// 	if !PUT(key,data,memtable,bucket){
+	// 		fmt.Println("MAJMUNE")
+	// 	} else {
+	// 		fmt.Println("PROSLO")
+	// 	}
+	// 	time.Sleep(time.Millisecond * 100)
+	// }
+
+	// NewWriteAheadLog("files/wal").ReadAllLogs()
+	
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
 	for true {
@@ -44,6 +55,7 @@ func main() {
 		fmt.Println("3 - DELETE")
 		fmt.Println("4 - LIST")
 		fmt.Println("5 - RANGE SCAN")
+		fmt.Println("6 - Pokreni Kompakciju")
 		fmt.Println("X - Izlaz iz programa")
 		fmt.Println("=======================================")
 		fmt.Print("Izaberite opciju: ")
@@ -116,5 +128,5 @@ func main() {
 	// 	fmt.Println(data3)
 	// }
 
-	InitializeLsm()
+	
 }

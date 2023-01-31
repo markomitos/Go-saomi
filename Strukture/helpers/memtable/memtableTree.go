@@ -6,6 +6,7 @@ import (
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/sstable"
+	. "project/gosaomi/wal"
 )
 
 type MemTableTree struct {
@@ -43,14 +44,13 @@ func (m *MemTableTree) Flush() {
 	sstable := NewSSTable(uint32(m.size), GenerateFlushName())
 	sstable.Flush(keys, values)
 	IncreaseLsmLevel(1)
+
+	//WAL -> kreiramo novi segment(log)
+	NewWriteAheadLog("files/wal").NewWALFile().Close()
 }
 
-func (m *MemTableTree) Put(key string, value []byte, tombstone ...bool) {
-	if len(tombstone) > 0 {
-		m.btree.InsertElem(key, value, tombstone[0])
-	} else {
-		m.btree.InsertElem(key, value)
-	}
+func (m *MemTableTree) Put(key string, data *Data) {
+	m.btree.Put(key, data)
 
 	if m.btree.Size == m.size {
 		m.Flush()

@@ -5,6 +5,7 @@ import (
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/skiplist"
 	. "project/gosaomi/sstable"
+	. "project/gosaomi/wal"
 )
 
 type MemTableList struct {
@@ -33,20 +34,18 @@ func (m *MemTableList) Flush() {
 	//praznjenje skipliste
 	newSkiplist := NewSkipList(m.size)
 	m.slist = newSkiplist
-	IncreaseLsmLevel(1)
 
 	//Flush
 	sstable := NewSSTable(uint32(m.size), GenerateFlushName())
 	sstable.Flush(keys, values)
 	IncreaseLsmLevel(1)
+
+	//WAL -> kreiramo novi segment(log)
+	NewWriteAheadLog("files/wal").NewWALFile().Close()
 }
 
-func (m *MemTableList) Put(key string, value []byte, tombstone ...bool) {
-	if len(tombstone) > 0 {
-		m.slist.Put(key, value, tombstone[0])
-	} else {
-		m.slist.Put(key, value)
-	}
+func (m *MemTableList) Put(key string, data *Data) {
+	m.slist.Put(key, data)
 
 	if m.slist.GetSize() == m.size {
 		m.Flush()
