@@ -17,6 +17,8 @@ const default_BloomFalsePositiveRate = 2.0
 const default_BTreeNumOfChildren = 3
 const default_SSTableFileConfig = "single"
 const default_LsmMaxLevel = 4
+const default_TokenBucketCap = 25
+const default_TokenBucketRate = 15
 const default_CompactionType = "size_tiered"
 
 type Config struct {
@@ -29,6 +31,9 @@ type Config struct {
 	BloomFalsePositiveRate float64 `yaml:"bloom_falsepositive_rate"`
 	BTreeNumOfChildren     uint    `yaml:"btree_num_of_children"`
 	SSTableFileConfig      string  `yaml:"sstable_file_config"`
+	LsmMaxLevel            uint    `yaml:"lsm_max_level"`
+	TokenBucketCap         int     `yaml:"token_cap"`
+	TokenBucketRate        int     `yaml:"token_rate"`
 	LsmMaxLevel	uint `yaml:"lsm_max_level"`
 	CompactionType string `yaml:"compaction_type"`
 }
@@ -45,11 +50,13 @@ func initializeConfig() *Config {
 	c.BTreeNumOfChildren = default_BTreeNumOfChildren
 	c.SSTableFileConfig = default_SSTableFileConfig
 	c.LsmMaxLevel = default_LsmMaxLevel
+	c.TokenBucketCap = default_TokenBucketCap
+	c.TokenBucketRate = default_TokenBucketRate
 	c.CompactionType = default_CompactionType
 	return c
 }
 
-//Dobavlja konfiguraciju iz fajla
+// Dobavlja konfiguraciju iz fajla
 func GetConfig() *Config {
 	c := initializeConfig()
 
@@ -95,6 +102,14 @@ func GetConfig() *Config {
 
 	if c.LsmMaxLevel < 4 {
 		c.LsmMaxLevel = default_LsmMaxLevel
+	}
+
+	if c.TokenBucketCap == 0 {
+		c.TokenBucketCap = default_TokenBucketCap
+	}
+
+	if c.TokenBucketRate == 0 {
+		c.TokenBucketRate = default_TokenBucketRate
 	}
 
 	if c.CompactionType != "size_tiered" && c.CompactionType != "leveled"{
