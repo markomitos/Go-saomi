@@ -181,7 +181,7 @@ func (wal *WriteAheadLog) generateSegmentFilename(offset ...uint) string {
 }
 
 // kreira file sa narednim offsetom
-func (wal *WriteAheadLog) newWALFile() *os.File {
+func (wal *WriteAheadLog) NewWALFile() *os.File {
 
 	filename := wal.generateSegmentFilename()
 	wal.current_offset++
@@ -213,7 +213,7 @@ func (wal *WriteAheadLog) deleteOldSegments() {
 // batch zapis - zapisuje ceo buffer u segment sa sledecim offsetom
 func (wal *WriteAheadLog) WriteBuffer() {
 	//kreira fajl sa narednim offsetom
-	file := wal.newWALFile()
+	file := wal.NewWALFile()
 
 	//zapisujemo ceo buffer u novi fajl
 	_, err := file.Write(wal.buffer)
