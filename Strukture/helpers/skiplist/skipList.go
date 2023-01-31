@@ -164,7 +164,7 @@ func (s *SkipList) updateHeight() {
 // }
 
 // ovo je logicno brisanje
-func (s *SkipList) Remove(key string) {
+func (s *SkipList) Remove(key string) bool {
 	node, found := s.find(key)
 	currentNode := s.head
 	if found {
@@ -178,9 +178,10 @@ func (s *SkipList) Remove(key string) {
 				}
 				currentNode = currentNode.next[currentLevel]
 			}
-		}
-	}
+		}	
+	} 
 	s.updateHeight()
+	return found
 }
 
 // uzima sve podatke u sortiranom redosledu

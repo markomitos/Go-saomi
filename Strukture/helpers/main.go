@@ -9,7 +9,7 @@ import (
 	. "project/gosaomi/memtable"
 	. "project/gosaomi/token_bucket"
 	. "project/gosaomi/wal"
-	// . "project/gosaomi/writepath"
+	// . "project/gosaomi/menu_functions"
 	// . "project/gosaomi/sstable"
 )
 
@@ -70,9 +70,9 @@ func main() {
 	bucket := NewTokenBucket()
 	fmt.Println(bucket)
 
-	RunCompact()
+	
 
-	// for i:=0; i < 200; i++{
+	// for i:=0; i < 500; i++{
 	// 	data := new(Data)
 	// 	data.Value = []byte("majmun")
 	// 	data.Timestamp = uint64(time.Now().Unix())
@@ -89,6 +89,7 @@ func main() {
 
 	// NewWriteAheadLog("files/wal").ReadAllLogs()
 	
+	RunCompact()
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
 	for true {

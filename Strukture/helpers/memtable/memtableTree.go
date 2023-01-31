@@ -7,6 +7,7 @@ import (
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/sstable"
 	. "project/gosaomi/wal"
+	"time"
 )
 
 type MemTableTree struct {
@@ -58,5 +59,13 @@ func (m *MemTableTree) Put(key string, data *Data) {
 }
 
 func (m *MemTableTree) Remove(key string) {
-	m.btree.Remove(key)
+	//Ukoliko nije nasao trazeni kljuc u Memtable
+	//Dodaje ga kao novi element sa tombstone=true
+	if !m.btree.Remove(key){
+		data:= new(Data)
+		data.Timestamp = uint64(time.Now().Unix())
+		data.Tombstone = true
+		data.Value = make([]byte, 0)
+		m.Put(key,data)
+	}
 }

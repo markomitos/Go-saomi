@@ -250,9 +250,9 @@ func (bTree *BTree) Put(key string, data *Data) {
 
 	found, node := bTree.FindNode(key)
 
-	//Ukoliko vec postoji ne dodajemo
+	//Ukoliko vec postoji samo izmenimo
 	if found {
-		fmt.Printf("Kljuc '%s' vec postoji u stablu\n", key)
+		node.values[key] = data
 		return
 	}
 
@@ -313,12 +313,13 @@ func (bTree *BTree) Put(key string, data *Data) {
 }
 
 // Logicko brisanje - postavlja tombstone na true
-func (bTree *BTree) Remove(key string) {
+func (bTree *BTree) Remove(key string) bool{
 	found, node := bTree.FindNode(key)
 	if !found {
-		return
+		return false
 	}
 	node.values[key].Tombstone = true
+	return true
 }
 
 // INORDER obilazak

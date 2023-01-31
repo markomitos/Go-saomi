@@ -8,6 +8,6 @@ btree_num_of_children: 3
 sstable_file_config: "single"
 token_cap: 20
 token_rate: 10
-lsm_max_level: 4
+lsm_max_level: 7
 compaction_type: "size_tiered"
 lru_cap: 5

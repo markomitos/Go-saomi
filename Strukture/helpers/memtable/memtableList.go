@@ -6,6 +6,7 @@ import (
 	. "project/gosaomi/skiplist"
 	. "project/gosaomi/sstable"
 	. "project/gosaomi/wal"
+	"time"
 )
 
 type MemTableList struct {
@@ -53,5 +54,13 @@ func (m *MemTableList) Put(key string, data *Data) {
 }
 
 func (m *MemTableList) Remove(key string) {
-	m.slist.Remove(key)
+	//Ukoliko nije nasao trazeni kljuc u Memtable
+	//Dodaje ga kao novi element sa tombstone=true
+	if !m.slist.Remove(key){
+		data:= new(Data)
+		data.Timestamp = uint64(time.Now().Unix())
+		data.Tombstone = true
+		data.Value = make([]byte, 0)
+		m.Put(key,data)
+	}
 }
