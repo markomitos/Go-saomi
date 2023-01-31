@@ -9,6 +9,7 @@ import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	"strconv"
+	"time"
 )
 
 /*
@@ -169,7 +170,7 @@ func (wal *WriteAheadLog) generateSegmentFilename(offset ...uint) string {
 		chosen_offset = offset[0]
 	}
 	filename := wal.directory + "/wal_"
-	ustr := strconv.FormatUint(chosen_offset, 10)
+	ustr := strconv.FormatUint(uint64(chosen_offset), 10)
 
 	//upotpunjava ime sa potrebnim nizom nula ukoliko ofset nije vec petocifren broj
 	for len(ustr) < 5 {
@@ -195,7 +196,7 @@ func (wal *WriteAheadLog) newWALFile() *os.File {
 // brise sve osim poslednjeg segmenta
 func (wal *WriteAheadLog) deleteOldSegments() {
 	wal.current_offset--
-	for offset := uint64(0); offset < wal.current_offset; offset++ {
+	for offset := uint(0); offset < wal.current_offset; offset++ {
 		err := os.Remove(wal.generateSegmentFilename(offset))
 		if err != nil {
 			log.Fatal(err)
@@ -335,7 +336,7 @@ func (wal *WriteAheadLog) readLog(filename string) {
 
 // cita hronoloskim redom sve segmente
 func (wal *WriteAheadLog) ReadAllLogs() {
-	offset := uint64(0)
+	offset := uint(0)
 	for offset < wal.current_offset {
 		println("==========================================================")
 		println("Current offset: ", offset)
@@ -347,14 +348,13 @@ func (wal *WriteAheadLog) ReadAllLogs() {
 
 func main() {
 	wal := NewWriteAheadLog("test")
+	data := new(Data)
+	data.Value = []byte("majmun")
+	data.Timestamp = uint64(time.Now().Unix())
+	data.Tombstone = true
 	for i := 0; i < 101; i++ {
-		e := wal.NewEntry([]byte(strconv.Itoa(i*125)), []byte("mjm"))
+		e := wal.NewEntry(strconv.Itoa(i*125), data)
 		e.Print()
 	}
-	entry := wal.NewEntry([]byte("789"), []byte("majmun"))
-	entry.Key = []byte("456")
-	entry.Value = []byte("mijmun")
-
-	wal.WriteEntry(entry)
 	wal.ReadAllLogs()
 }
