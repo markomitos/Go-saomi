@@ -2,14 +2,15 @@ package least_reacently_used
 
 import (
 	"container/list"
+	"project/gosaomi/config"
 )
 
 // Koristicemo mapu i linked listu za LRU
 
-type Cache interface {
-	Get(key string) string
-	Set(key, value string)
-}
+//type Cache interface {
+//	Get(key string) string
+//	Set(key, value string)
+//}
 
 type LRUCache struct {
 	m   map[string]*cacheMapElement
@@ -22,10 +23,12 @@ type cacheMapElement struct {
 	value string
 }
 
-func NewLRU(cap int) LRUCache {
+func NewLRU() LRUCache {
+	c := config.GetConfig()
+
 	return LRUCache{
 		m:   map[string]*cacheMapElement{},
-		cap: cap,
+		cap: c.LruCap,
 		l:   list.List{},
 	}
 }
