@@ -155,15 +155,15 @@ func NewWriteAheadLog(directory string) *WriteAheadLog {
 
 	//zadajemo inicijalne vrednosti
 	wal.buffer = make([]byte, 0)
-	wal.low_water_mark = uint64(config.WalWaterMark)
-	wal.buffer_capacity = uint(config.WalBufferCapacity)
+	wal.low_water_mark = config.WalWaterMark
+	wal.buffer_capacity = config.WalBufferCapacity
 	wal.buffer_size = 0
 	return wal
 
 }
 
 // generise ime filea sa trenutnim offsetom
-func (wal *WriteAheadLog) generateSegmentFilename(offset ...uint64) string {
+func (wal *WriteAheadLog) generateSegmentFilename(offset ...uint) string {
 	chosen_offset := wal.current_offset
 	if len(offset) > 0 {
 		chosen_offset = offset[0]
