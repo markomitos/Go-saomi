@@ -8,6 +8,7 @@ import (
 	"os"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/memtable"
 	"strconv"
 	"time"
 )
@@ -64,7 +65,7 @@ type Entry struct {
 	Value      []byte
 }
 
-// Konstruktor jednog unosa i automatski taj unos ubacuje u buffer
+// Konstruktor jednog unosa
 func (wal *WriteAheadLog) NewEntry(key string, data *Data) *Entry {
 	e := new(Entry)
 
@@ -99,7 +100,6 @@ func (wal *WriteAheadLog) NewEntry(key string, data *Data) *Entry {
 	bytes = append(bytes, e.Value...)
 	e.Crc = make([]byte, 4)
 	binary.BigEndian.PutUint32(e.Crc, uint32(CRC32(bytes)))
-	wal.addEntryToBuffer(e)
 	return e
 }
 
@@ -344,6 +344,32 @@ func (wal *WriteAheadLog) ReadAllLogs() {
 		wal.readLog(wal.generateSegmentFilename(offset))
 		offset++
 	}
+}
+
+func (wal *WriteAheadLog) InitiateMemTable() MemTable {
+	config := GetConfig()
+	memTable := NewMemTable(config.MemtableSize)
+	file, err := os.Open(wal.generateSegmentFilename())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		entry := ReadEntry(file)
+		if entry == nil {
+			break
+		}
+		tombstone := false
+		if entry.Tombstone[0] == byte(uint8(1)) {
+			tombstone = true
+		}
+		timestamp := binary.BigEndian.Uint64(entry.Timestamp)
+		data := NewData(entry.Value, tombstone, timestamp)
+		key := string(entry.Value)
+		memTable.Put(key, data)
+	}
+	file.Close()
+	return memTable
 }
 
 func main() {
