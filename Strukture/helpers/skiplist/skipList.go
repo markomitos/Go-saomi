@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	. "project/gosaomi/dataType"
 	"strings"
-	"time"
 )
 
 type SkipList struct {
@@ -103,23 +102,20 @@ func (s *SkipList) updateNodePointers(node *SkipListNode, minHeight int) {
 	}
 }
 
-func (s *SkipList) Put(key string, value []byte, tombstone ...bool) {
+func (s *SkipList) Put(key string, data *Data) {
 	node, found := s.find(key)
 	//update ako ga je nasao
 	if found {
-		node.value = value
+		node.value = data.Value
 	} else {
 		//Pravimo nov node
 		level := s.roll()
 		newNode := &SkipListNode{
 			key:       key,
-			value:     value,
-			timestamp: uint64(time.Now().Unix()),
-			tombstone: false,
+			value:     data.Value,
+			timestamp: data.Timestamp,
+			tombstone: data.Tombstone,
 			next:      make([]*SkipListNode, level),
-		}
-		if len(tombstone) > 0 {
-			newNode.tombstone = tombstone[0]
 		}
 		s.size += 1
 
