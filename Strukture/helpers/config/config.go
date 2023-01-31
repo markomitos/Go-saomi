@@ -23,8 +23,8 @@ const default_CompactionType = "size_tiered"
 
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
-	WalBufferCapacity                int     `yaml:"wal_buffer_capacity"`
-	WalWaterMark uint `yaml:"wal_water_mark"`
+	WalBufferCapacity      int     `yaml:"wal_buffer_capacity"`
+	WalWaterMark 		   uint    `yaml:"wal_water_mark"`
 	MemtableSize           uint    `yaml:"memtable_size"`
 	MemtableStructure      string  `yaml:"memtable_structure"`
 	SStableInterval        uint    `yaml:"sstable_interval"`
@@ -34,7 +34,7 @@ type Config struct {
 	LsmMaxLevel            uint    `yaml:"lsm_max_level"`
 	TokenBucketCap         int     `yaml:"token_cap"`
 	TokenBucketRate        int     `yaml:"token_rate"`
-	CompactionType string `yaml:"compaction_type"`
+	CompactionType 		   string  `yaml:"compaction_type"`
 }
 
 // Ukoliko unutar config.yml fali neki atribut
