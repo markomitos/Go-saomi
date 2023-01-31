@@ -1,7 +1,8 @@
-package main
+package token_bucket
 
 import (
 	"fmt"
+	"project/gosaomi/config"
 	"time"
 )
 
@@ -13,11 +14,14 @@ type TokenBucket struct {
 	lock     chan struct{}
 }
 
-func NewTokenBucket(rate, capacity int) *TokenBucket {
+func NewTokenBucket() *TokenBucket {
+
+	c := config.GetConfig()
+
 	return &TokenBucket{
-		rate:     rate,
-		capacity: capacity,
-		tokens:   capacity,
+		rate:     c.TokenBucketRate,
+		capacity: c.TokenBucketCap,
+		tokens:   c.TokenBucketCap, // Inicijalno token bucket je upotpunosti pun
 		last:     time.Now(),
 		lock:     make(chan struct{}, 1),
 	}
@@ -46,6 +50,7 @@ func (b *TokenBucket) Take(tokens int) bool {
 	}
 
 	if b.tokens < tokens {
+
 		return false
 	}
 	b.tokens -= tokens
@@ -53,8 +58,10 @@ func (b *TokenBucket) Take(tokens int) bool {
 }
 
 func main() {
-	bucket := NewTokenBucket(10, 10)
+
+	bucket := NewTokenBucket()
 	for i := 0; i < 200; i++ {
+		// Saljemo zahtev ovo ce se raditi eksterno od strane ostatka sistema
 		if bucket.Take(1) {
 			fmt.Println("Zahtev odobren")
 		} else {
