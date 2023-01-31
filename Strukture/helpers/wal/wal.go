@@ -287,10 +287,15 @@ func (entry *Entry) Print() {
 	Timestamp := binary.BigEndian.Uint64(entry.Timestamp)
 	Key_size := binary.BigEndian.Uint64(entry.Key_size)
 	Value_size := binary.BigEndian.Uint64(entry.Value_size)
+	//Tombstone
+	tombstone := false
+	if entry.Tombstone[0] == byte(uint8(1)) {
+		tombstone = true
+	}
 	println("Entry: ")
 	println("CRC: ", entry.Crc)
 	println("Timestamp: ", Timestamp)
-	println("Tombstone: ", entry.Tombstone)
+	println("Tombstone: ", tombstone)
 	println("Key size: ", Key_size)
 	println("Value size: ", Value_size)
 	println("Key: ", string(entry.Key))

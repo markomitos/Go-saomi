@@ -1,4 +1,5 @@
-wal_size: 10
+wal_buffer_capacity: 10
+wal_water_mark: 20
 memtable_size: 20
 memtable_structure: b_tree
 sstable_interval: 10
@@ -6,3 +7,4 @@ bloom_falsepositive_rate: 2.0
 btree_num_of_children: 3
 sstable_file_config: "single"
 lsm_max_level: 4
+compaction_type: "size_tiered"

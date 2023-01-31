@@ -15,6 +15,8 @@ type SST interface {
 	makeFiles() []*os.File
 	Flush(keys []string, values []*Data)
 	Find(key string) (bool, *Data)
+	GetData() ([]string, []*Data)
+	GoToData() (*os.File, uint64)
 }
 
 type Index struct {

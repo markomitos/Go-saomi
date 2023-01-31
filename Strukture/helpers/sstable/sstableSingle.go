@@ -10,6 +10,7 @@ import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	merkle "project/gosaomi/merkle"
+	. "project/gosaomi/wal"
 )
 
 type SSTableSingle struct {
@@ -247,29 +248,7 @@ func (sstable *SSTableSingle) Find(Key string) (bool, *Data) {
 	//Otvaramo fajl i citamo header
 	sstableFile := sstable.OpenFile("sstable.bin")
 
-	//Citamo velicinu data zone
-	bytes := make([]byte,8)
-	_, err := sstableFile.Read(bytes)
-	if err != nil{
-		log.Fatal(err)
-	}
-	dataSize := binary.BigEndian.Uint64(bytes)
-
-	//Citamo velicinu indeksne zone
-	bytes = make([]byte,8)
-	_, err = sstableFile.Read(bytes)
-	if err != nil{
-		log.Fatal(err)
-	}
-	indexSize := binary.BigEndian.Uint64(bytes)
-
-	//Citamo velicinu summary zone
-	bytes = make([]byte,8)
-	_, err = sstableFile.Read(bytes)
-	if err != nil{
-		log.Fatal(err)
-	}
-	summarySize := binary.BigEndian.Uint64(bytes)
+	dataSize,indexSize,summarySize := sstable.ReadHeader(sstableFile)
 
 	//Offseti na pocetke zona
 	dataStart := uint64(24)
@@ -335,4 +314,86 @@ func (sstable *SSTableSingle) Find(Key string) (bool, *Data) {
 
 	sstableFile.Close()
 	return true, foundData
+}
+
+//Vraca duzinu data,index,summary
+func (sstable *SSTableSingle) ReadHeader(file *os.File) (uint64, uint64, uint64){
+	//Citamo velicinu data zone
+	bytes := make([]byte,8)
+	_, err := file.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	dataSize := binary.BigEndian.Uint64(bytes)
+
+	//Citamo velicinu indeksne zone
+	bytes = make([]byte,8)
+	_, err = file.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	indexSize := binary.BigEndian.Uint64(bytes)
+
+	//Citamo velicinu summary zone
+	bytes = make([]byte,8)
+	_, err = file.Read(bytes)
+	if err != nil{
+		log.Fatal(err)
+	}
+	summarySize := binary.BigEndian.Uint64(bytes)
+
+	return dataSize,indexSize,summarySize
+}
+
+//Cita sve podatke i vraca 2 niza
+func (sstable *SSTableSingle) GetData() ([]string, []*Data){
+	file := sstable.OpenFile("sstable.bin")
+	keys := make([]string,0)
+	dataArray := make([]*Data, 0)
+
+	//Citamo header
+	dataSize,_,_ := sstable.ReadHeader(file)
+
+	//Offseti na pocetke zona
+	dataStart := uint64(24)
+	dataEnd := dataStart + dataSize
+
+
+	for {
+		//Proveravamo da li smo prosli data zonu
+		currentOffset, err := file.Seek(0,1)
+		if err != nil{
+			log.Fatal(err)
+		}
+		if uint64(currentOffset) >= dataEnd {
+			break
+		}
+
+		entry := ReadEntry(file)
+
+		keys = append(keys, string(entry.Key))
+		data := new(Data)
+		data.Value = entry.Value
+		//Tombstone
+		data.Tombstone = false
+		if entry.Tombstone[0] == byte(uint8(1)) {
+			data.Tombstone = true
+		}
+		data.Timestamp = binary.BigEndian.Uint64(entry.Timestamp)
+		dataArray = append(dataArray, data)
+	}
+	file.Close()
+
+	return keys, dataArray
+}
+
+//Otvara fajl i postavlja pokazivac na pocetak data zone
+//vraca pokazivac na taj fajl i velicinu data zone
+func (sstable *SSTableSingle) GoToData() (*os.File, uint64){
+	file := sstable.OpenFile("sstable.bin")
+
+	//Citamo header
+	dataSize,_,_ := sstable.ReadHeader(file)
+
+	return file, dataSize+24
 }

@@ -8,18 +8,21 @@ import (
 )
 
 // Default vrednosti
-const default_WalSize = 10
+const default_WalBufferCapacity = 10
+const default_WalWaterMark = 20
 const default_MemtableSize = 10
-const default_MemtableStructure = "skiplist"
+const default_MemtableStructure = "b_tree"
 const default_SStableInterval = 128
 const default_BloomFalsePositiveRate = 2.0
 const default_BTreeNumOfChildren = 3
 const default_SSTableFileConfig = "single"
 const default_LsmMaxLevel = 4
+const default_CompactionType = "size_tiered"
 
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
-	WalSize                int     `yaml:"wal_size"`
+	WalBufferCapacity                int     `yaml:"wal_buffer_capacity"`
+	WalWaterMark uint `yaml:"wal_water_mark"`
 	MemtableSize           uint    `yaml:"memtable_size"`
 	MemtableStructure      string  `yaml:"memtable_structure"`
 	SStableInterval        uint    `yaml:"sstable_interval"`
@@ -27,12 +30,14 @@ type Config struct {
 	BTreeNumOfChildren     uint    `yaml:"btree_num_of_children"`
 	SSTableFileConfig      string  `yaml:"sstable_file_config"`
 	LsmMaxLevel	uint `yaml:"lsm_max_level"`
+	CompactionType string `yaml:"compaction_type"`
 }
 
 // Ukoliko unutar config.yml fali neki atribut
 func initializeConfig() *Config {
 	c := new(Config)
-	c.WalSize = default_WalSize
+	c.WalBufferCapacity = default_WalBufferCapacity
+	c.WalWaterMark = default_WalWaterMark
 	c.MemtableSize = default_MemtableSize
 	c.MemtableStructure = default_MemtableStructure
 	c.SStableInterval = default_SStableInterval
@@ -40,6 +45,7 @@ func initializeConfig() *Config {
 	c.BTreeNumOfChildren = default_BTreeNumOfChildren
 	c.SSTableFileConfig = default_SSTableFileConfig
 	c.LsmMaxLevel = default_LsmMaxLevel
+	c.CompactionType = default_CompactionType
 	return c
 }
 
@@ -55,8 +61,12 @@ func GetConfig() *Config {
 	yaml.Unmarshal(configData, c)
 
 	// Provera defaultnih vrednosti
-	if c.WalSize == 0 {
-		c.WalSize = default_WalSize
+	if c.WalBufferCapacity < 2 {
+		c.WalBufferCapacity = default_WalBufferCapacity
+	}
+
+	if c.WalWaterMark < 10 {
+		c.WalWaterMark = default_WalWaterMark
 	}
 
 	if c.MemtableSize == 0 {
@@ -85,6 +95,10 @@ func GetConfig() *Config {
 
 	if c.LsmMaxLevel < 4 {
 		c.LsmMaxLevel = default_LsmMaxLevel
+	}
+
+	if c.CompactionType != "size_tiered" && c.CompactionType != "leveled"{
+		c.CompactionType = default_CompactionType
 	}
 
 	return c
