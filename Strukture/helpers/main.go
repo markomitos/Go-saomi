@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"project/gosaomi/b_tree"
-	. "project/gosaomi/dataType"
-	. "project/gosaomi/sstable"
+	// . "project/gosaomi/dataType"
+	. "project/gosaomi/lsm"
+	// . "project/gosaomi/sstable"
 )
 
 func main() {
@@ -36,39 +36,41 @@ func main() {
 	bTree.Remove("g")
 	// bTree.PrintBTree()
 
-	keys := make([]string, 0)
-	values := make([]*Data, 0)
-	bTree.InorderTraverse(bTree.Root, &keys, &values)
-	for i := 0; i < len(keys); i++ {
-		fmt.Println("Key: ", keys[i], "Value: ", string(values[i].Value))
-	}
+	// keys := make([]string, 0)
+	// values := make([]*Data, 0)
+	// bTree.InorderTraverse(bTree.Root, &keys, &values)
+	// for i := 0; i < len(keys); i++ {
+	// 	fmt.Println("Key: ", keys[i], "Value: ", string(values[i].Value))
+	// }
 
 	//SSTABELA
-	sstable := NewSSTable(uint32(bTree.Size), "sstable-1")
+	// sstable := NewSSTable(uint32(bTree.Size), "sstable-1")
 	// sstable.Flush(keys, values)
 	// sstable.ReadData()
 	// sstable.ReadIndex()
 	// sstable.ReadSummary()
 	// sstable.ReadBloom()
 
-	found1, data1 := sstable.Find("b")
-	if !found1 {
-		fmt.Println("Nije pronadjen b")
-	} else {
-		fmt.Println(data1)
-	}
+	// found1, data1 := sstable.Find("b")
+	// if !found1 {
+	// 	fmt.Println("Nije pronadjen b")
+	// } else {
+	// 	fmt.Println(data1)
+	// }
 
-	found2, data2 := sstable.Find("x")
-	if !found2 {
-		fmt.Println("Nije pronadjen x")
-	} else {
-		fmt.Println(data2)
-	}
+	// found2, data2 := sstable.Find("x")
+	// if !found2 {
+	// 	fmt.Println("Nije pronadjen x")
+	// } else {
+	// 	fmt.Println(data2)
+	// }
 
-	found3, data3 := sstable.Find("aaaaaaa")
-	if !found3 {
-		fmt.Println("Nije pronadjen aaaaaaa")
-	} else {
-		fmt.Println(data3)
-	}
+	// found3, data3 := sstable.Find("aaaaaaa")
+	// if !found3 {
+	// 	fmt.Println("Nije pronadjen aaaaaaa")
+	// } else {
+	// 	fmt.Println(data3)
+	// }
+
+	InitializeLsm()
 }

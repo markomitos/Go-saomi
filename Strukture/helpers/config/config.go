@@ -15,6 +15,7 @@ const default_SStableInterval = 128
 const default_BloomFalsePositiveRate = 2.0
 const default_BTreeNumOfChildren = 3
 const default_SSTableFileConfig = "single"
+const default_LsmMaxLevel = 4
 
 type Config struct {
 	//stringovi posle atributa su tu da bi Unmarshal znao gde sta da namapira
@@ -25,6 +26,7 @@ type Config struct {
 	BloomFalsePositiveRate float64 `yaml:"bloom_falsepositive_rate"`
 	BTreeNumOfChildren     uint    `yaml:"btree_num_of_children"`
 	SSTableFileConfig      string  `yaml:"sstable_file_config"`
+	LsmMaxLevel	uint `yaml:"lsm_max_level"`
 }
 
 // Ukoliko unutar config.yml fali neki atribut
@@ -37,6 +39,7 @@ func initializeConfig() *Config {
 	c.BloomFalsePositiveRate = default_BloomFalsePositiveRate
 	c.BTreeNumOfChildren = default_BTreeNumOfChildren
 	c.SSTableFileConfig = default_SSTableFileConfig
+	c.LsmMaxLevel = default_LsmMaxLevel
 	return c
 }
 
@@ -78,6 +81,10 @@ func GetConfig() *Config {
 
 	if c.SSTableFileConfig != "single" && c.SSTableFileConfig != "multiple" {
 		c.SSTableFileConfig = default_SSTableFileConfig
+	}
+
+	if c.LsmMaxLevel < 4 {
+		c.LsmMaxLevel = default_LsmMaxLevel
 	}
 
 	return c

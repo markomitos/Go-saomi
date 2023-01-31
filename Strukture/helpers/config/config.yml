@@ -5,3 +5,4 @@ sstable_interval: 10
 bloom_falsepositive_rate: 2.0
 btree_num_of_children: 3
 sstable_file_config: "single"
+lsm_max_level: 4
