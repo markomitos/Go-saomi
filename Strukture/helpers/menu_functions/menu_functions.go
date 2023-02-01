@@ -2,9 +2,13 @@ package menu_functions
 
 import (
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/entry"
+	. "project/gosaomi/least_reacently_used"
+	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
 	. "project/gosaomi/token_bucket"
 	. "project/gosaomi/wal"
+	"time"
 )
 
 //TO DO: funkcija koja ce se pozivati iz menija
@@ -32,13 +36,64 @@ func DELETE(key string, memtable MemTable, bucket *TokenBucket) bool {
 	if !bucket.Take() {
 		return false
 	} 
+	//UPISUJEMO U WAL kao obrisan
+	data:= new(Data)
+	data.Timestamp = uint64(time.Now().Unix())
+	data.Tombstone = true
+	data.Value = make([]byte, 0) //Posto je obrisan necemo cuvati vrednost
 
+	wal := NewWriteAheadLog("files/wal")
+	entry := NewEntry(key, data)
+	wal.WriteEntry(entry)
+
+
+	//Brisemo u memtable-u
 	memtable.Remove(key)
 
-	//Dodati brisanje i u wal-u
+	//TO DO: Brisemo u cache-u
+	
 	return true
 }
 
-func GET(){
+// ------------ READPATH ------------
+// Cita podatak i ukoliko je uspesno citanje smesta ga u cache
+func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool, *Data){
+	if !bucket.Take() {
+		return false, nil
+	} 
+
+	//1. Proveravamo memtable
+	found, data := memtable.Find(key)
+	if found{
+		if data.Tombstone == false{
+			//Dodajemo u cache
+			lru.Set(key, data)
+
+			return true, data
+		} else {
+			return false, nil
+		}
+	}
+
+	//2. Proveravamo Cache
+	found, data = lru.Get(key)
+	if found {
+		return true, data
+	}
+
+	//3. Proveravamo sstabele
+	lsm := ReadLsm()
+	found, data = lsm.Find(key)
+	if found{
+		if data.Tombstone == false{
+			//Dodajemo u cache
+			lru.Set(key, data)
+
+			return true, data
+		} else {
+			return false, nil
+		}
+	}
+	return false, nil
 
 }

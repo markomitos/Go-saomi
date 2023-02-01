@@ -8,7 +8,7 @@ import (
 
 type BTreeNode struct {
 	keys     []string //Kljucevi
-	values   map[string]*Data
+	Values   map[string]*Data
 	children []*BTreeNode //Pokazivaci na decu
 	parent   *BTreeNode
 }
@@ -23,7 +23,7 @@ type BTree struct {
 func NewBTreeNode(parent *BTreeNode) *BTreeNode {
 	bTreeNode := new(BTreeNode)
 	bTreeNode.keys = make([]string, 0)
-	bTreeNode.values = make(map[string]*Data)
+	bTreeNode.Values = make(map[string]*Data)
 	bTreeNode.children = make([]*BTreeNode, 0)
 	bTreeNode.parent = parent
 	return bTreeNode
@@ -112,14 +112,14 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	//Delimo cvor na tri dela
 	middleIndex := bTree.maxKeys / 2
 	middleKey := node.keys[middleIndex]
-	// middleVal := node.values[middleIndex]
+	// middleVal := node.Values[middleIndex]
 
 	// ----- left -----
 	leftNode := NewBTreeNode(parent)
 	//dodajem kljuceve i vrednosti
 	for _, key := range node.keys[0:middleIndex] {
 		leftNode.keys = append(leftNode.keys, key)
-		leftNode.values[key] = node.values[key]
+		leftNode.Values[key] = node.Values[key]
 	}
 	//dodajem decu, ukoliko je ima
 	if len(node.children) != 0 {
@@ -134,7 +134,7 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 	//dodajem kljuceve i vrednosti
 	for _, key := range node.keys[middleIndex+1:] {
 		rightNode.keys = append(rightNode.keys, key)
-		rightNode.values[key] = node.values[key]
+		rightNode.Values[key] = node.Values[key]
 	}
 	//dodajem decu, ukoliko je ima
 	if len(node.children) != 0 {
@@ -146,11 +146,11 @@ func (bTree *BTree) splitNode(node *BTreeNode) {
 
 	// ----- Ubacujem srednji element u roditelja -----
 	parent.keys = append(parent.keys, middleKey)
-	parent.values[middleKey] = node.values[middleKey]
+	parent.Values[middleKey] = node.Values[middleKey]
 	parent.keys = BubbleSort(parent.keys)
 
 	// //Brisem stari cvor
-	// delete(node.values, middleKey) //Brisemo value iz naseg cvora
+	// delete(node.Values, middleKey) //Brisemo value iz naseg cvora
 	// node.keys = RemoveIndex(node.keys, int(middleIndex))
 	// node.keys = BubbleSort(node.keys)
 
@@ -196,15 +196,15 @@ func (bTree *BTree) rotateNodes(node *BTreeNode, sibling *BTreeNode, isRight boo
 		}
 
 		node.parent.keys[indexFromParent] = keyFromNode //Prepisujemo preko starog
-		node.parent.values[keyFromNode] = node.values[keyFromNode]
-		delete(node.values, keyFromNode) //Brisemo value iz naseg cvora
+		node.parent.Values[keyFromNode] = node.Values[keyFromNode]
+		delete(node.Values, keyFromNode) //Brisemo value iz naseg cvora
 		node.keys = RemoveIndex(node.keys, len(node.keys)-1)
 		node.parent.keys = BubbleSort(node.parent.keys)
 
 		//Prvog najveceg iz roditelja spustamo
 		sibling.keys = append(sibling.keys, keyFromParent)
-		sibling.values[keyFromParent] = node.parent.values[keyFromParent]
-		delete(node.parent.values, keyFromParent) //Brisemo value iz roditelja
+		sibling.Values[keyFromParent] = node.parent.Values[keyFromParent]
+		delete(node.parent.Values, keyFromParent) //Brisemo value iz roditelja
 		sibling.keys = BubbleSort(sibling.keys)
 
 	} else {
@@ -223,15 +223,15 @@ func (bTree *BTree) rotateNodes(node *BTreeNode, sibling *BTreeNode, isRight boo
 		}
 
 		node.parent.keys[indexFromParent] = keyFromNode //Prepisujemo preko starog
-		node.parent.values[keyFromNode] = node.values[keyFromNode]
-		delete(node.values, keyFromNode) //Brisemo value iz naseg cvora
+		node.parent.Values[keyFromNode] = node.Values[keyFromNode]
+		delete(node.Values, keyFromNode) //Brisemo value iz naseg cvora
 		node.keys = RemoveIndex(node.keys, 0)
 		node.parent.keys = BubbleSort(node.parent.keys)
 
 		//Prvog najmanjeg iz roditelja spustamo
 		sibling.keys = append(sibling.keys, keyFromParent)
-		sibling.values[keyFromParent] = node.parent.values[keyFromParent]
-		delete(node.parent.values, keyFromParent) //Brisemo value iz roditelja
+		sibling.Values[keyFromParent] = node.parent.Values[keyFromParent]
+		delete(node.parent.Values, keyFromParent) //Brisemo value iz roditelja
 		sibling.keys = BubbleSort(sibling.keys)
 	}
 }
@@ -243,7 +243,7 @@ func (bTree *BTree) Put(key string, data *Data) {
 		bTree.Root = NewBTreeNode(nil) //Nema roditelja :(
 		bTree.Root.keys = append(bTree.Root.keys, key)
 		bTree.Root.keys = BubbleSort(bTree.Root.keys)
-		bTree.Root.values[key] = data
+		bTree.Root.Values[key] = data
 		bTree.Size++
 		return
 	}
@@ -252,13 +252,13 @@ func (bTree *BTree) Put(key string, data *Data) {
 
 	//Ukoliko vec postoji samo izmenimo
 	if found {
-		node.values[key] = data
+		node.Values[key] = data
 		return
 	}
 
 	//Dodamo element
 	node.keys = append(node.keys, key)
-	node.values[key] = data
+	node.Values[key] = data
 	node.keys = BubbleSort(node.keys)
 	bTree.Size++
 
@@ -318,28 +318,28 @@ func (bTree *BTree) Remove(key string) bool{
 	if !found {
 		return false
 	}
-	node.values[key].Tombstone = true
+	node.Values[key].Tombstone = true
 	return true
 }
 
 // INORDER obilazak
-func (bTree *BTree) InorderTraverse(node *BTreeNode, keys *[]string, values *[]*Data) {
+func (bTree *BTree) InorderTraverse(node *BTreeNode, keys *[]string, Values *[]*Data) {
 	if node == nil {
 		return
 	}
 	for i := 0; i < len(node.children)-1; i++ {
-		bTree.InorderTraverse(node.children[i], keys, values)
+		bTree.InorderTraverse(node.children[i], keys, Values)
 		if i < len(node.keys) {
 			*keys = append(*keys, node.keys[i])
-			*values = append(*values, node.values[node.keys[i]])
+			*Values = append(*Values, node.Values[node.keys[i]])
 		}
 	}
 	if len(node.children) > 0 {
-		bTree.InorderTraverse(node.children[len(node.children)-1], keys, values)
+		bTree.InorderTraverse(node.children[len(node.children)-1], keys, Values)
 	} else {
 		for i := 0; i < len(node.keys); i++ {
 			*keys = append(*keys, node.keys[i])
-			*values = append(*values, node.values[node.keys[i]])
+			*Values = append(*Values, node.Values[node.keys[i]])
 		}
 	}
 }
@@ -361,7 +361,7 @@ func (t *BTree) PrintBTree() {
 			fmt.Print(strings.Repeat("  ", level))
 			fmt.Print("Keys: ")
 			for _, key := range current.keys {
-				if current.values[key].Tombstone {
+				if current.Values[key].Tombstone {
 					fmt.Print("(", key, ")", " ")
 				} else {
 					fmt.Print(key, " ")

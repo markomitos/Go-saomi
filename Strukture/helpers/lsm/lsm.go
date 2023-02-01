@@ -207,13 +207,7 @@ func (lsm *Lsm) Compact(currentLevel uint32){
 }
 
 func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
-	config := GetConfig()
-
-	//Racunamo velicinu naredne sstabele kao duplu od prethodne
-	//jer ne znamo kolika ce tacno biti velicina,
-	//mada ona nije ni toliko bitna jer je koristi samo bloomfilter za inicijalizaciju
-	//On prima ocekivani broj elemenata tako da ovo nece biti greska
-	size := uint32(math.Pow(2, float64(currentLevel-1)) * float64(config.MemtableSize))
+	size := getSSTableSize(currentLevel)
 
 	//Uzimamo po 2 sstabele i radimo kompakciju nad njima
 	for index := uint32(1); index < lsm.LevelSizes[currentLevel-1]; index += 2{
@@ -235,10 +229,8 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 	lsm.Write()
 }
 
-
 //TO DO
-func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
-	
+func (lsm *Lsm) LeveledCompaction(currentLevel uint32){	
 }
 
 func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
@@ -349,4 +341,32 @@ func deleteSSTable(directory string){
 	if err != nil{
 		log.Fatal(err)
 	}
+}
+
+//Racuna velicinu sstabele za zadati nivo
+func getSSTableSize(currentLevel uint32) uint32{
+	config := GetConfig()
+	//Racunamo velicinu naredne sstabele kao duplu od prethodne
+	//jer ne znamo kolika ce tacno biti velicina,
+	//mada ona nije ni toliko bitna jer je koristi samo bloomfilter za inicijalizaciju
+	//On prima ocekivani broj elemenata tako da ovo nece biti greska
+	return uint32(math.Pow(2, float64(currentLevel-1)) * float64(config.MemtableSize))
+}
+
+//Trazi kljuc unutar svih sstabela
+func (lsm *Lsm) Find(key string) (bool, *Data){
+	//iteriramo po nivoima
+	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
+		size := getSSTableSize(currentLevel)
+		//iteriramo po sstabelama kako su dodavane(od najveceg indeksa, noviji ce se prvi citati)
+		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
+			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+			found, data := currentSSTable.Find(key)
+			if found {
+				return found, data
+			}
+		}
+	}
+	return false, nil
+
 }

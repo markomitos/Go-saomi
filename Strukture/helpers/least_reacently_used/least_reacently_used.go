@@ -5,132 +5,154 @@ import (
 	"encoding/binary"
 	"log"
 	"os"
+	"path/filepath"
 	"project/gosaomi/config"
 	"project/gosaomi/dataType"
+	. "project/gosaomi/dataType"
 	. "project/gosaomi/entry"
 )
 
 // Koristicemo mapu i linked listu za LRU
 
-//type Cache interface {
-//	Get(key string) string
-//	Set(key, value string)
-//}
-
 type LRUCache struct {
-	m   map[string]*cacheMapElement
+	elementMap   map[string]*cacheMapElement
 	cap int
-	l   list.List
+	keyList   list.List
 }
 
 type cacheMapElement struct {
 	el    *list.Element
-	value dataType.Data
+	value *Data
 }
 
-func NewLRU() LRUCache {
+func NewLRU() *LRUCache {
 	c := config.GetConfig()
 
-	return LRUCache{
-		m:   map[string]*cacheMapElement{},
+	return &LRUCache{
+		elementMap:   map[string]*cacheMapElement{},
 		cap: c.LruCap,
-		l:   list.List{},
+		keyList:   list.List{},
 	}
 }
 
-func (c *LRUCache) WriteLru() bool {
-	file, err := os.OpenFile("files/cache/cache.bin", os.O_APPEND, 0600)
-	if err != nil {
-		log.Fatal(err)
-		return false
+func (lru *LRUCache) Write() {
+	//Trazimo lokaciju fajla
+	path, err1 := filepath.Abs("files/cache/cache.bin")
+	if err1 != nil {
+		log.Fatal(err1)
 	}
+
+	file, err := os.OpenFile(path, os.O_RDWR, 0777)
+	if err != nil {
+		if os.IsNotExist(err){
+			file, err1 = os.Create(path)
+			if err1 != nil {
+				log.Fatal(err1)
+			}
+		} else {
+			log.Fatal(err)
+		}
+	}
+	file.Truncate(0) //Brise ga
 	// Prolazak kroz dvostruko spregnutu listu
-	for e := c.l.Front(); e != nil; e = e.Next() {
+	for e := lru.keyList.Front(); e != nil; e = e.Next() {
 		//zapisujemo entry kao niz bytova
 		key := e.Value.(string)
-		entry := NewEntry(key, &c.m[key].value)
+		entry := NewEntry(key, lru.elementMap[key].value)
 
 		_, err = file.Write(EntryToBytes(entry))
 		if err != nil {
 			log.Fatal(err)
-			return false
 		}
 	}
 	err = file.Close()
 	if err != nil {
-		return false
+		log.Fatal(err)
 	}
-	return true
 }
 
-func (c *LRUCache) ReadLru() bool {
+func ReadLru() *LRUCache {
+	lru := NewLRU()
 	// Otvaramo fajl
-	file, err := os.OpenFile("files/cache/cache.bin", os.O_APPEND, 0600)
+	file, err := os.OpenFile("files/cache/cache.bin", os.O_RDONLY, 0777)
 	if err != nil {
-		log.Fatal(err)
-		return false
+		if os.IsNotExist(err){
+			path, err1 := filepath.Abs("files/cache/cache.bin")
+			if err1 != nil {
+				log.Fatal(err1)
+			}
+
+			file, err1 = os.Create(path)
+			if err1 != nil {
+				log.Fatal(err1)
+			}
+			return lru
+		} else {
+			log.Fatal(err)
+		}	
 	}
 	// Citamo slogove
 
-	for i := 0; i < c.cap; i++ {
+	for i := 0; i < lru.cap; i++ {
 
 		entry := ReadEntry(file)
 
-		c.l.PushBack(string(entry.Key))
+		lru.keyList.PushBack(string(entry.Key))
 		timestamp := binary.BigEndian.Uint64(entry.Timestamp)
 		tombstone := entry.Tombstone[0] == uint8(1)
 
-		data := dataType.Data{
+		data := &dataType.Data{
 			Value:     entry.Value,
 			Tombstone: tombstone,
 			Timestamp: timestamp,
 		}
 
 		cache := new(cacheMapElement)
-		cache.el = c.l.Back()
+		cache.el = lru.keyList.Back()
 		cache.value = data
 
-		c.m[string(entry.Key)] = cache
+		lru.elementMap[string(entry.Key)] = cache
 	}
 
 	err = file.Close()
 	if err != nil {
-		return false
+		log.Fatal(err)
 	}
 
-	return true
+	return lru
 }
 
-func (c *LRUCache) Get(key string) dataType.Data {
-	v, ok := c.m[key]
+func (lru *LRUCache) Get(key string) (bool, *Data) {
+	elem, ok := lru.elementMap[key]
 	if !ok {
-		return dataType.Data{}
+		return false, nil
 	}
-	c.l.MoveToFront(v.el)
-	return v.value
+	lru.keyList.MoveToFront(elem.el)
+	lru.Write()
+	return true, elem.value
 }
 
-func (c *LRUCache) Set(key string, value *dataType.Data) {
-	v, ok := c.m[key]
+func (lru *LRUCache) Set(key string, value *Data) {
+	v, ok := lru.elementMap[key]
 	if !ok {
-		el := c.l.PushFront(key)
-		c.m[key] = &cacheMapElement{
+		el := lru.keyList.PushFront(key)
+		lru.elementMap[key] = &cacheMapElement{
 			el:    el,
-			value: *value,
+			value: value,
 		}
 
-		if c.l.Len() > c.cap {
-			backEl := c.l.Back()
+		if lru.keyList.Len() > lru.cap {
+			backEl := lru.keyList.Back()
 			backElementKey := backEl.Value.(string)
-			c.l.Remove(backEl)
-			delete(c.m, backElementKey)
+			lru.keyList.Remove(backEl)
+			delete(lru.elementMap, backElementKey)
 		}
 
 	} else {
-		v.value = *value
-		c.l.MoveToFront(v.el)
+		v.value = value
+		lru.keyList.MoveToFront(v.el)
 	}
-
+	lru.Write()
 }
 
 //func main() {

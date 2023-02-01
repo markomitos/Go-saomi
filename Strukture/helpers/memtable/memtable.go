@@ -8,6 +8,7 @@ import (
 // da bi mogli nad oba tipa napisati funkcije pravimo interface
 type MemTable interface {
 	Put(key string, data *Data)
+	Find(key string) (bool, *Data)
 	Remove(key string)
 	Flush()
 	Print()

@@ -29,6 +29,14 @@ func (m *MemTableTree) Print() {
 	m.btree.PrintBTree()
 }
 
+func (m *MemTableTree) Find(key string) (bool, *Data){
+	found, node := m.btree.FindNode(key)
+	if !found {
+		return false, nil
+	}
+	return true, node.Values[key]
+}
+
 func (m *MemTableTree) Flush() {
 	config := GetConfig()
 

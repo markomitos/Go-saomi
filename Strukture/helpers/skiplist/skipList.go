@@ -18,9 +18,7 @@ type SkipList struct {
 type SkipListNode struct {
 	//key uint da bi bilo isto kao kod B_tree
 	key       string
-	value     []byte
-	timestamp uint64
-	tombstone bool
+	Data 	  *Data
 	next      []*SkipListNode
 }
 
@@ -49,7 +47,7 @@ func NewSkipList(maxh uint) *SkipList {
 	skipList.size = 0
 	skipList.head = &SkipListNode{
 		key:   "",
-		value: []byte(nil),
+		Data: new(Data),
 		next:  make([]*SkipListNode, maxh),
 	}
 	return skipList
@@ -59,7 +57,7 @@ func (s *SkipList) GetSize() uint {
 	return s.size
 }
 
-func (s *SkipList) find(key string) (*SkipListNode, bool) {
+func (s *SkipList) Find(key string) (*SkipListNode, bool) {
 	currentNode := s.head
 	for currentLevel := int(s.height) - 1; currentLevel >= 0; currentLevel-- {
 		if currentNode.key == key {
@@ -103,18 +101,16 @@ func (s *SkipList) updateNodePointers(node *SkipListNode, minHeight int) {
 }
 
 func (s *SkipList) Put(key string, data *Data) {
-	node, found := s.find(key)
+	node, found := s.Find(key)
 	//update ako ga je nasao
 	if found {
-		node.value = data.Value
+		node.Data = data
 	} else {
 		//Pravimo nov node
 		level := s.roll()
 		newNode := &SkipListNode{
 			key:       key,
-			value:     data.Value,
-			timestamp: data.Timestamp,
-			tombstone: data.Tombstone,
+			Data:      data,
 			next:      make([]*SkipListNode, level),
 		}
 		s.size += 1
@@ -145,7 +141,7 @@ func (s *SkipList) updateHeight() {
 
 // ovo je fizicko brisanje
 // func (s *SkipList) Remove(key string) {
-// 	node, found := s.find(key)
+// 	node, found := s.Find(key)
 // 	currentNode := s.head
 // 	if found {
 // 		//Prevezujemo pokazivace do visine pronadjenog node-a
@@ -165,7 +161,7 @@ func (s *SkipList) updateHeight() {
 
 // ovo je logicno brisanje
 func (s *SkipList) Remove(key string) bool {
-	node, found := s.find(key)
+	node, found := s.Find(key)
 	currentNode := s.head
 	if found {
 		//Prevezujemo pokazivace do visine pronadjenog node-a
@@ -173,7 +169,7 @@ func (s *SkipList) Remove(key string) bool {
 			for currentNode != nil {
 				if currentNode.next[currentLevel].key == key {
 					//tombstone
-					currentNode.next[currentLevel].tombstone = true
+					currentNode.next[currentLevel].Data.Tombstone = true
 					break
 				}
 				currentNode = currentNode.next[currentLevel]
@@ -191,10 +187,7 @@ func (s *SkipList) GetAllNodes(keys *[]string, values *[]*Data) {
 	currentNode := s.head
 	for currentNode.next[0] != nil {
 		next := currentNode.next[0]
-		data := new(Data)
-		data.Timestamp = next.timestamp
-		data.Tombstone = next.tombstone
-		data.Value = next.value
+		data := next.Data
 
 		*keys = append(*keys, next.key)
 		*values = append(*values, data)
@@ -231,33 +224,4 @@ func (s *SkipList) Print() {
 		fmt.Println()
 	}
 	fmt.Println(strings.Repeat("_", 100))
-}
-
-func main() {
-	s := NewSkipList(10)
-	// s.Put("i", []byte("majmun"), []byte("vreme"))
-	// s.Put("c", []byte("majmun"), []byte("vreme"))
-	// s.Put("e", []byte("majmun"), []byte("vreme"))
-	// s.Put("d", []byte("majmun"), []byte("vreme"))
-	// s.Put("f", []byte("majmun"), []byte("vreme"))
-	// s.Put("g", []byte("majmun"), []byte("vreme"))
-	// s.Put("s", []byte("majmun"), []byte("vreme"))
-	// s.Put("q", []byte("majmun"), []byte("vreme"))
-	// s.Put("r", []byte("majmun"), []byte("vreme"))
-	// s.Put("t", []byte("majmun"), []byte("vreme"))
-	// s.Put("j", []byte("majmun"), []byte("vreme"))
-	// s.Put("l", []byte("majmun"), []byte("vreme"))
-	// s.Put("p", []byte("majmun"), []byte("vreme"))
-	// s.Put("o", []byte("majmun"), []byte("vreme"))
-	s.Print()
-	// s.remove("b")
-	// s.print()
-	// s.remove("g")
-	// s.print()
-	// s.put("a", []byte("tigar"))
-	// s.put("nm", []byte("tigar"))
-	// fmt.Println(s.height)
-	// s.print()
-
-	// fmt.Println(s.find("22"))
 }

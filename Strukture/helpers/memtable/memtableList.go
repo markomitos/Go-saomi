@@ -26,6 +26,14 @@ func (m *MemTableList) Print() {
 	m.slist.Print()
 }
 
+func (m *MemTableList) Find(key string) (bool, *Data){
+	node, found  := m.slist.Find(key)
+	if !found {
+		return false, nil
+	}
+	return true, node.Data
+}
+
 func (m *MemTableList) Flush() {
 	keys := make([]string, 0)
 	values := make([]*Data, 0)

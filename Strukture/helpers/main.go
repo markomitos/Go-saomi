@@ -3,13 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
-	// . "project/gosaomi/dataType"
+	. "project/gosaomi/dataType"
+	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
+	. "project/gosaomi/menu_functions"
 	. "project/gosaomi/token_bucket"
 	. "project/gosaomi/wal"
-	// . "project/gosaomi/menu_functions"
 	// . "project/gosaomi/sstable"
 )
 
@@ -60,6 +63,7 @@ func main() {
 	InitializeLsm()
 	
 	//Ucitavamo CACHE (LRU)
+	lru := ReadLru()
 
 	//Na pocetku ucitavamo iz WAL-a u memtabelu
 	wal := NewWriteAheadLog("files/wal")
@@ -72,24 +76,33 @@ func main() {
 
 	
 
-	// for i:=0; i < 500; i++{
-	// 	data := new(Data)
-	// 	data.Value = []byte("majmun")
-	// 	data.Timestamp = uint64(time.Now().Unix())
-	// 	data.Tombstone = false
-	// 	key := strconv.Itoa(i)
+	for i:=0; i < 586; i++{
+		data := new(Data)
+		data.Value = []byte("majmun")
+		data.Timestamp = uint64(time.Now().Unix())
+		data.Tombstone = false
+		key := strconv.Itoa(i)
 		
-	// 	if !PUT(key,data,memtable,bucket){
-	// 		fmt.Println("MAJMUNE")
-	// 	} else {
-	// 		fmt.Println("PROSLO")
-	// 	}
-	// 	time.Sleep(time.Millisecond * 100)
-	// }
-
-	// NewWriteAheadLog("files/wal").ReadAllLogs()
+		if !PUT(key,data,memtable,bucket){
+			fmt.Println("MAJMUNE")
+		} else {
+			fmt.Println("PROSLO")
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
 	
+	found, data := GET("2", memtable, lru, bucket)
+	if found {
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem 2")
+	}
+
+	DELETE("2", memtable, bucket)
+
 	RunCompact()
+
+
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
 	for true {
