@@ -14,9 +14,9 @@ import (
 // Koristicemo mapu i linked listu za LRU
 
 type LRUCache struct {
-	elementMap   map[string]*cacheMapElement
-	cap int
-	keyList   list.List
+	elementMap map[string]*cacheMapElement
+	cap        int
+	keyList    list.List
 }
 
 type cacheMapElement struct {
@@ -24,13 +24,18 @@ type cacheMapElement struct {
 	value *Data
 }
 
+func (lru *LRUCache) Delete(key string) {
+	lru.keyList.Remove(lru.elementMap[key].el)
+	delete(lru.elementMap, key)
+}
+
 func NewLRU() *LRUCache {
 	c := config.GetConfig()
 
 	return &LRUCache{
-		elementMap:   map[string]*cacheMapElement{},
-		cap: c.LruCap,
-		keyList:   list.List{},
+		elementMap: map[string]*cacheMapElement{},
+		cap:        c.LruCap,
+		keyList:    list.List{},
 	}
 }
 
@@ -43,7 +48,7 @@ func (lru *LRUCache) Write() {
 
 	file, err := os.OpenFile(path, os.O_RDWR, 0777)
 	if err != nil {
-		if os.IsNotExist(err){
+		if os.IsNotExist(err) {
 			file, err1 = os.Create(path)
 			if err1 != nil {
 				log.Fatal(err1)
@@ -52,7 +57,10 @@ func (lru *LRUCache) Write() {
 			log.Fatal(err)
 		}
 	}
-	file.Truncate(0) //Brise ga
+	err = file.Truncate(0)
+	if err != nil {
+		return
+	} //Brise ga
 	// Prolazak kroz dvostruko spregnutu listu
 	for e := lru.keyList.Front(); e != nil; e = e.Next() {
 		//zapisujemo entry kao niz bytova
@@ -75,7 +83,7 @@ func ReadLru() *LRUCache {
 	// Otvaramo fajl
 	file, err := os.OpenFile("files/cache/cache.bin", os.O_RDONLY, 0777)
 	if err != nil {
-		if os.IsNotExist(err){
+		if os.IsNotExist(err) {
 			path, err1 := filepath.Abs("files/cache/cache.bin")
 			if err1 != nil {
 				log.Fatal(err1)
@@ -88,13 +96,13 @@ func ReadLru() *LRUCache {
 			return lru
 		} else {
 			log.Fatal(err)
-		}	
+		}
 	}
 
 	// Citamo slogove
 	for i := 0; i < lru.cap; i++ {
 		entry := ReadEntry(file)
-		if entry == nil{
+		if entry == nil {
 			break
 		}
 
@@ -152,20 +160,36 @@ func (lru *LRUCache) Set(key string, value *Data) {
 	lru.Write()
 }
 
+//
 //func main() {
 //	lru := NewLRU()
-//	lru.Set("1", dataType.NewData([]byte("ognjen"), false, uint64(time.Now().Unix())))
-//	lru.Set("2", dataType.NewData([]byte("vesna"), false, uint64(time.Now().Unix())))
-//	lru.Set("3", dataType.NewData([]byte("ilija"), false, uint64(time.Now().Unix())))
-//	lru.Set("4", dataType.NewData([]byte("branko"), false, uint64(time.Now().Unix())))
-//	lru.Set("5", dataType.NewData([]byte("marko"), false, uint64(time.Now().Unix())))
-//	lru.Set("6", dataType.NewData([]byte("zarko"), false, uint64(time.Now().Unix())))
+//	lru.Set("1", NewData([]byte("ognjen"), false, uint64(time.Now().Unix())))
+//	lru.Set("2", NewData([]byte("vesna"), false, uint64(time.Now().Unix())))
+//	lru.Set("3", NewData([]byte("ilija"), false, uint64(time.Now().Unix())))
+//	lru.Set("4", NewData([]byte("branko"), false, uint64(time.Now().Unix())))
+//	lru.Set("5", NewData([]byte("marko"), false, uint64(time.Now().Unix())))
+//	lru.Set("6", NewData([]byte("zarko"), false, uint64(time.Now().Unix())))
+//
+//	found, elem := lru.Get("4")
+//
+//	if found {
+//		println("super pronadjen: ", string(elem.Value))
+//	}
+//
+//	println("sada brisemo")
+//	lru.Delete("4")
+//
+//	found, elem = lru.Get("4")
+//
+//	if !found {
+//		println("Sve super nije pronadjen element koji je obrisan")
+//	}
+//
 //	//
-//	lru.WriteLru()
+//	//lru.WriteLru()
 //	//ime := lru.Get("2")
 //	//fmt.Println(ime)
 //	//lru.Set("7", "darko")
 //	//ime = lru.Get("2")
 //	//fmt.Println(ime)
-//
 //}
