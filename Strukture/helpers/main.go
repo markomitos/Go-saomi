@@ -93,14 +93,40 @@ func main() {
 	
 	found, data := GET("2", memtable, lru, bucket)
 	if found {
+		fmt.Println("2")
 		data.Print()
 	} else {
 		fmt.Println("Ne postoji podatak sa kljucem 2")
 	}
 
-	DELETE("2", memtable, bucket)
+	DELETE("20", memtable, bucket)
+
+	found, data = GET("20", memtable, lru, bucket)
+	if found {
+		fmt.Println("20")
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem 20")
+	}
 
 	RunCompact()
+
+	found, data = GET("3", memtable, lru, bucket)
+	if found {
+		fmt.Println("3")
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem 3")
+	}
+
+	found, data = GET("abc", memtable, lru, bucket)
+	if found {
+		fmt.Println("abc")
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem abc")
+	}
+
 
 
 
