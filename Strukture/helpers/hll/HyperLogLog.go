@@ -15,9 +15,9 @@ const (
 )
 
 type HLL struct {
-	m   uint64
-	p   uint8
-	reg []uint8
+	M   uint64
+	P   uint8
+	Reg []uint8
 }
 
 // Hash i pretvaranje u binaran oblik
@@ -44,23 +44,23 @@ func NewHLL(precision uint8) (*HLL, error) {
 	if precision < HLL_MIN_PRECISION && precision > HLL_MAX_PRECISION {
 		return nil, errors.New("Preciznost mora biti izmedju 4 i 16")
 	}
-	hll.p = precision
-	hll.m = uint64(math.Pow(2, float64(precision)))
-	hll.reg = make([]uint8, hll.m)
+	hll.P = precision
+	hll.M = uint64(math.Pow(2, float64(precision)))
+	hll.Reg = make([]uint8, hll.M)
 	return hll, nil
 }
 
 func (hll *HLL) AddToHLL(elem string) {
 	hashString := Hash(elem)
 	fmt.Println(hashString)
-	bucketString := hashString[:hll.p]
+	bucketString := hashString[:hll.P]
 	bucket, err := strconv.ParseInt(bucketString, 2, 64)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	zerosCount := 1
-	for i := uint8(len(hashString)) - 1; i >= hll.p; i-- {
+	for i := uint8(len(hashString)) - 1; i >= hll.P; i-- {
 		if hashString[i] == '0' {
 			zerosCount++
 		} else {
@@ -68,8 +68,8 @@ func (hll *HLL) AddToHLL(elem string) {
 		}
 	}
 
-	if hll.reg[bucket] < uint8(zerosCount) {
-		hll.reg[bucket] = uint8(zerosCount)
+	if hll.Reg[bucket] < uint8(zerosCount) {
+		hll.Reg[bucket] = uint8(zerosCount)
 	}
 
 }
@@ -77,16 +77,16 @@ func (hll *HLL) AddToHLL(elem string) {
 // Vraca procenjenu kardinalnost
 func (hll *HLL) Estimate() float64 {
 	sum := 0.0
-	for _, val := range hll.reg {
+	for _, val := range hll.Reg {
 		sum += math.Pow(math.Pow(2.0, float64(val)), -1)
 	}
 
-	alpha := 0.7213 / (1.0 + 1.079/float64(hll.m))
-	estimation := alpha * math.Pow(float64(hll.m), 2.0) / sum
+	alpha := 0.7213 / (1.0 + 1.079/float64(hll.M))
+	estimation := alpha * math.Pow(float64(hll.M), 2.0) / sum
 	emptyRegs := hll.emptyCount()
-	if estimation <= 2.5*float64(hll.m) { // do small range correction
+	if estimation <= 2.5*float64(hll.M) { // do small range correction
 		if emptyRegs > 0 {
-			estimation = float64(hll.m) * math.Log(float64(hll.m)/float64(emptyRegs))
+			estimation = float64(hll.M) * math.Log(float64(hll.M)/float64(emptyRegs))
 		}
 	} else if estimation > 1/30.0*math.Pow(2.0, 32.0) { // do large range correction
 		estimation = -math.Pow(2.0, 32.0) * math.Log(1.0-estimation/math.Pow(2.0, 32.0))
@@ -97,7 +97,7 @@ func (hll *HLL) Estimate() float64 {
 // Pomocna funkcija koja racuna nule
 func (hll *HLL) emptyCount() int {
 	sum := 0
-	for _, val := range hll.reg {
+	for _, val := range hll.Reg {
 		if val == 0 {
 			sum++
 		}
