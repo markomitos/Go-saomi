@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/scan"
 	. "project/gosaomi/sstable"
 	"strconv"
 )
@@ -82,6 +83,7 @@ func (lsm *Lsm) Write(){
 	file.Close()
 }
 
+//Ucitava LSM sa diska
 func ReadLsm() *Lsm{
 	filePath, err1 := filepath.Abs("files/sstable/lsm.bin")
 	if err1 != nil{
@@ -232,6 +234,7 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 func (lsm *Lsm) LeveledCompaction(currentLevel uint32){	
 }
 
+//Spaja 2 sstabele
 func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	file1, data1End  := firstSStable.GoToData()
 	file2, data2End  := secondSStable.GoToData()
@@ -323,8 +326,8 @@ func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	return mergedKeys, mergedData
 }
 
+//Proveravamo da li smo prosli data zonu
 func isEndOfData(file *os.File, dataEnd uint64) bool{
-	//Proveravamo da li smo prosli data zonu
 	currentOffset, err := file.Seek(0,1)
 	if err != nil{
 		log.Fatal(err)
@@ -335,6 +338,7 @@ func isEndOfData(file *os.File, dataEnd uint64) bool{
 	return false
 }
 
+//Brise sstabelu
 func deleteSSTable(directory string){
 	err := os.RemoveAll("files/sstable/"+directory)
 	if err != nil{
@@ -368,4 +372,22 @@ func (lsm *Lsm) Find(key string) (bool, *Data){
 	}
 	return false, nil
 
+}
+
+// range scan u lsm-u napraviti koji iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
+func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
+
+	//iteriramo po nivoima
+	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
+		size := getSSTableSize(currentLevel)
+		//iteriramo po sstabelama kako su dodavane(od najveceg indeksa, noviji ce se prvi citati)
+		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
+			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+			currentSSTable.RangeScan(minKey,maxKey,scan)
+			if scan.FoundResults >= scan.SelectedPageEnd{
+				return
+			}
+		}
+	}
+	return
 }
