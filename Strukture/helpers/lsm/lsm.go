@@ -267,10 +267,8 @@ func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 
 			//Prolazimo samo kroz drugu tabelu da prebacimo ostatak
 			for true{
-				if !data2.Tombstone{
-					mergedKeys = append(mergedKeys, key2)
-					mergedData = append(mergedData, data2)
-				}
+				mergedKeys = append(mergedKeys, key2)
+				mergedData = append(mergedData, data2)
 				if isEndOfData(file2, data2End){
 					break
 				}
@@ -288,10 +286,8 @@ func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 
 			//Prolazimo samo kroz prvu tabelu da prebacimo ostatak
 			for true{
-				if !data1.Tombstone{
-					mergedKeys = append(mergedKeys, key1)
-					mergedData = append(mergedData, data1)
-				}
+				mergedKeys = append(mergedKeys, key1)
+				mergedData = append(mergedData, data1)
 				if isEndOfData(file1, data1End){
 					break
 				}
@@ -310,30 +306,22 @@ func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 
 		if key1 == key2 {
 			if data2.Timestamp >= data1.Timestamp{
-				if !data2.Tombstone{
-					mergedKeys = append(mergedKeys, key2)
-					mergedData = append(mergedData, data2)
-				}
+				mergedKeys = append(mergedKeys, key2)
+				mergedData = append(mergedData, data2)
 			} else {
-				if !data1.Tombstone{
-					mergedKeys = append(mergedKeys, key1)
-					mergedData = append(mergedData, data1)
-				}
-			}
-			toRead1 = true
-			toRead2 = true
-		} else if(key1 < key2){
-			if !data1.Tombstone{
 				mergedKeys = append(mergedKeys, key1)
 				mergedData = append(mergedData, data1)
 			}
 			toRead1 = true
+			toRead2 = true
+		} else if(key1 < key2){
+			mergedKeys = append(mergedKeys, key1)
+			mergedData = append(mergedData, data1)
+			toRead1 = true
 			toRead2 = false
 		} else if(key2 < key1){
-			if !data2.Tombstone{
-				mergedKeys = append(mergedKeys, key2)
-				mergedData = append(mergedData, data2)
-			}
+			mergedKeys = append(mergedKeys, key2)
+			mergedData = append(mergedData, data2)
 			toRead1 = false
 			toRead2 = true
 		}

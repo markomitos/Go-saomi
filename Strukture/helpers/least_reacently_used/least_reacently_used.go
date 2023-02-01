@@ -7,7 +7,7 @@ import (
 	"os"
 	"project/gosaomi/config"
 	"project/gosaomi/dataType"
-	. "project/gosaomi/wal"
+	. "project/gosaomi/entry"
 )
 
 // Koristicemo mapu i linked listu za LRU
@@ -39,7 +39,7 @@ func NewLRU() LRUCache {
 }
 
 func (c *LRUCache) WriteLru() bool {
-	file, err := os.OpenFile("project/gosaomi/files/cache/cache.bin", os.O_APPEND, 0600)
+	file, err := os.OpenFile("files/cache/cache.bin", os.O_APPEND, 0600)
 	if err != nil {
 		log.Fatal(err)
 		return false
@@ -65,7 +65,7 @@ func (c *LRUCache) WriteLru() bool {
 
 func (c *LRUCache) ReadLru() bool {
 	// Otvaramo fajl
-	file, err := os.OpenFile("project/gosaomi/files/cache/cache.bin", os.O_APPEND, 0600)
+	file, err := os.OpenFile("files/cache/cache.bin", os.O_APPEND, 0600)
 	if err != nil {
 		log.Fatal(err)
 		return false

@@ -34,6 +34,8 @@ func DELETE(key string, memtable MemTable, bucket *TokenBucket) bool {
 	} 
 
 	memtable.Remove(key)
+
+	//Dodati brisanje i u wal-u
 	return true
 }
 
