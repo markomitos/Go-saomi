@@ -391,11 +391,5 @@ func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan)
 			log.Fatal(err)
 		}
 	}
-	
-
-
-	
-	
-	
 
 }

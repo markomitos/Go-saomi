@@ -6,6 +6,7 @@ import (
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
+	. "project/gosaomi/scan"
 	. "project/gosaomi/token_bucket"
 	. "project/gosaomi/wal"
 	"time"
@@ -95,5 +96,19 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 		}
 	}
 	return false, nil
+}
 
+// RANGE SCAN
+func RangeScan(minKey string, maxKey string, pageLen uint32, pageNum uint32) (bool, []string, []*Data){
+	lsm := ReadLsm()
+	scan := NewScan(pageLen, pageNum)
+
+	//update-a se scan
+	lsm.RangeScan(minKey, maxKey, scan)
+
+	if len(scan.Keys) == 0{
+		return false, nil, nil
+	}
+
+	return true, scan.Keys, scan.Data
 }
