@@ -9,6 +9,7 @@ import (
 	. "project/gosaomi/bloom"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/scan"
 )
 
 type SST interface {
@@ -16,6 +17,7 @@ type SST interface {
 	Flush(keys []string, values []*Data)
 	Find(key string) (bool, *Data)
 	GoToData() (*os.File, uint64)
+	RangeScan(minKey string, maxKey string, scan *Scan)
 }
 
 type Index struct {

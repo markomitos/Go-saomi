@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
-	"time"
 
-	. "project/gosaomi/dataType"
+	// "strconv"
+	// "time"
+
+	// . "project/gosaomi/dataType"
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
@@ -76,20 +77,20 @@ func main() {
 
 	
 
-	for i:=0; i < 586; i++{
-		data := new(Data)
-		data.Value = []byte("majmun")
-		data.Timestamp = uint64(time.Now().Unix())
-		data.Tombstone = false
-		key := strconv.Itoa(i)
+	// for i:=0; i < 586; i++{
+	// 	data := new(Data)
+	// 	data.Value = []byte("majmun")
+	// 	data.Timestamp = uint64(time.Now().Unix())
+	// 	data.Tombstone = false
+	// 	key := strconv.Itoa(i)
 		
-		if !PUT(key,data,memtable,bucket){
-			fmt.Println("MAJMUNE")
-		} else {
-			fmt.Println("PROSLO")
-		}
-		time.Sleep(time.Millisecond * 100)
-	}
+	// 	if !PUT(key,data,memtable,bucket){
+	// 		fmt.Println("MAJMUNE")
+	// 	} else {
+	// 		fmt.Println("PROSLO")
+	// 	}
+	// 	time.Sleep(time.Millisecond * 100)
+	// }
 	
 	found, data := GET("2", memtable, lru, bucket)
 	if found {
@@ -109,7 +110,7 @@ func main() {
 		fmt.Println("Ne postoji podatak sa kljucem 20")
 	}
 
-	RunCompact()
+	// RunCompact()
 
 	found, data = GET("3", memtable, lru, bucket)
 	if found {

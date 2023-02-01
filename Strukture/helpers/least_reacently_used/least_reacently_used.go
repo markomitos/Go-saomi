@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"project/gosaomi/config"
-	"project/gosaomi/dataType"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/entry"
 )
@@ -91,21 +90,19 @@ func ReadLru() *LRUCache {
 			log.Fatal(err)
 		}	
 	}
+
 	// Citamo slogove
-
 	for i := 0; i < lru.cap; i++ {
-
 		entry := ReadEntry(file)
+		if entry == nil{
+			break
+		}
 
 		lru.keyList.PushBack(string(entry.Key))
 		timestamp := binary.BigEndian.Uint64(entry.Timestamp)
 		tombstone := entry.Tombstone[0] == uint8(1)
 
-		data := &dataType.Data{
-			Value:     entry.Value,
-			Tombstone: tombstone,
-			Timestamp: timestamp,
-		}
+		data := NewData(entry.Value, tombstone, timestamp)
 
 		cache := new(cacheMapElement)
 		cache.el = lru.keyList.Back()

@@ -22,6 +22,7 @@ type Lsm struct{
 	LevelSizes []uint32  //cuva broj sstabela u svakom nivou
 }
 
+//Kreira foldere i lsm fajl ako ne postoji
 func InitializeLsm(){
 	_, err := os.Stat("files/sstable/lsm.bin")
 	if os.IsNotExist(err){
@@ -47,8 +48,6 @@ func InitializeLsm(){
 		//Ukoliko je maxlevel veci od broja trenutnih foldera kreirace se novi
 		ReadLsm().GenerateLevelFolders()
 	}
-
-	
 }
 
 //Zapisuje lsm u fajl

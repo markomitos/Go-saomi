@@ -9,6 +9,7 @@ import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	merkle "project/gosaomi/merkle"
+	. "project/gosaomi/scan"
 )
 
 type SSTableMulti struct {
@@ -317,4 +318,84 @@ func (sstable *SSTableMulti) GoToData()  (*os.File, uint64){
 		log.Fatal(err)
 	}
 	return file, uint64(fileInfo.Size())
+}
+
+// ------------- RANGE SCAN -------------
+//Prolazi kroz sstabelu i trazi kljuceve koji zadovoljavaju trazeni interval
+func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan){
+
+	//Proveravamo da li je kljuc van opsega
+	summary := sstable.ReadSummary()
+
+	if maxKey < summary.FirstKey || minKey > summary.LastKey {
+		return //Preskacemo ovu sstabelu jer kljucevi nisu u opsegu
+	}
+
+	chosenIntervals := make([]*Index, 0)
+	for i := 1; i < len(summary.Intervals); i++ {
+		if summary.Intervals[i].Key < minKey {
+			continue
+		}
+		if maxKey < summary.Intervals[i-1].Key{
+			break
+		}
+		chosenIntervals = append(chosenIntervals, summary.Intervals[i-1])
+	}
+
+	if len(chosenIntervals) < 1 {
+		return
+	}
+
+	// ------ Otvaramo index tabelu ------
+	indexFile := sstable.OpenFile("index.bin")
+	currentIndex := new(Index)
+	chosenIndexOffset := make([]uint64, 0) //Cuva offsete odabranih indeksa koji treba da budu na toj stranici
+
+	//Prolazimo kroz sve nadjene indeksne delove
+	for i := 0; i < len(chosenIntervals); i++{
+		indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+
+		//trazimo redom
+		for i := 0; i < int(sstable.intervalSize); i++ {
+			currentIndex = byteToIndex(indexFile)
+			if currentIndex.Key >= minKey && currentIndex.Key <= maxKey{
+				scan.FoundResults++
+				//Ukoliko je u opsegu nase stranice pamtimo u Scan
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					chosenIndexOffset = append(chosenIndexOffset, currentIndex.Offset)
+				}
+			} else if currentIndex.Key > maxKey{
+				break
+			}
+		}
+	}
+
+	err := indexFile.Close() //zatvaramo indeksnu tabelu
+	if err != nil{
+		log.Fatal(err)
+	}
+
+	//Prikupljamo podatke iz data tabele i ubacujemo u Scan
+	if len(chosenIndexOffset) > 0{
+		// ------ Pristupamo disku i uzimamo podtak ------
+		dataFile := sstable.OpenFile("data.bin")
+
+		for i:=0; i<len(chosenIndexOffset); i++{
+			foundKey, foundData := ByteToData(dataFile, currentIndex.Offset)
+			scan.Keys = append(scan.Keys, foundKey)
+			scan.Data = append(scan.Data, foundData)
+		}
+
+		err = dataFile.Close()
+		if err != nil{
+			log.Fatal(err)
+		}
+	}
+	
+
+
+	
+	
+	
+
 }
