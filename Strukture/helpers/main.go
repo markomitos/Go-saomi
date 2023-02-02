@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+
+	// "strconv"
 	"time"
 
 	// "strconv"
@@ -99,14 +101,13 @@ func main() {
 	bucket := NewTokenBucket()
 	fmt.Println(bucket)
 
-	// RANFOM STRING GENERATOR
 
 	// for i:=0; i < 586; i++{
 	// 	data := new(Data)
 	// 	data.Value = []byte("majmun")
 	// 	data.Timestamp = uint64(time.Now().Unix())
 	// 	data.Tombstone = false
-	// 	key := RandomString(5)
+	// 	key := strconv.FormatInt(int64(i),10)
 		
 	// 	if !PUT(key,data,memtable,bucket){
 	// 		fmt.Println("MAJMUNE")
@@ -154,7 +155,7 @@ func main() {
 
 
 	start := time.Now()
-	found, keys, dataArr := RANGE_SCAN("bbbbb", "uuuuu",10 , 3, memtable)
+	found, keys, dataArr := RANGE_SCAN("1", "999",10 , 6, memtable)
 	fmt.Printf("main, execution time %s\n", time.Since(start))
 
 	if !found {

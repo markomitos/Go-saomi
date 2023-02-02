@@ -382,7 +382,7 @@ func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan)
 		dataFile := sstable.OpenFile("data.bin")
 
 		for i:=0; i<len(chosenIndexOffset); i++{
-			foundKey, foundData := ByteToData(dataFile, currentIndex.Offset)
+			foundKey, foundData := ByteToData(dataFile, chosenIndexOffset[i])
 			scan.Keys = append(scan.Keys, foundKey)
 			scan.Data = append(scan.Data, foundData)
 		}

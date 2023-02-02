@@ -359,7 +359,7 @@ func (sstable *SSTableSingle) GoToData() (*os.File, uint64){
 	return file, dataSize+24
 }
 
-// RANGE SCAN
+// ------------- RANGE SCAN -------------
 func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan)  {
 
 	//Otvaramo fajl i citamo header
@@ -435,8 +435,7 @@ func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan
 	if len(chosenIndexOffset) > 0{
 
 		for i:=0; i<len(chosenIndexOffset); i++{
-			sstableFile.Seek(int64(chosenIndexOffset[i] + dataStart), 0)
-			foundKey, foundData := ByteToData(sstableFile, currentIndex.Offset)
+			foundKey, foundData := ByteToData(sstableFile, chosenIndexOffset[i] + dataStart)
 			scan.Keys = append(scan.Keys, foundKey)
 			scan.Data = append(scan.Data, foundData)
 		}
