@@ -1,9 +1,10 @@
-package simhash
+package main
 
 import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"strings"
 )
 
 func GetMD5Hash(text string) string {
@@ -18,6 +19,34 @@ func ToBinary(s string) string {
 	}
 	return res
 }
+//pretvara niz bajtova u mapu
+//kljuc - rec
+//vrednost - broj ponavljanja te reci
+func GenerateWeightedMap(bytes []byte) map[string]int {
+	mapa := make(map[string]int)
+
+	text := string(bytes)
+
+	//string pretvorimo u niz reci
+	words := strings.Split(text, " ")
+
+	for _, word := range words {
+		word := strings.ToUpper(word)
+		word = strings.Trim(word, ",")
+		word = strings.Trim(word, ".")
+		word = strings.Trim(word, "!")
+		word = strings.Trim(word, "?")
+
+		//Provera kljuca
+		i := mapa[word]
+		if i == 0 {
+			mapa[word] = 1
+		} else {
+			mapa[word]++
+		}
+	}
+	return mapa
+}
 
 func HashText(weightedMap map[string]int) []int {
 	//Hash i konvertovanje u binarno
@@ -26,7 +55,7 @@ func HashText(weightedMap map[string]int) []int {
 		hashedMap[i] = ToBinary(GetMD5Hash(i))
 	}
 
-	//nule pretvaram u -1
+	//nule pretvara u -1
 	valueMap := make(map[string][]int)
 	for word, bitset := range hashedMap {
 		valueMap[word] = make([]int, 256)
@@ -40,7 +69,7 @@ func HashText(weightedMap map[string]int) []int {
 		}
 	}
 
-	//Sabiram kolone pomnozene tezinom
+	//Sabira kolone pomnozene tezinom
 	sumArray := make([]int, 256)
 	for i := 0; i < 256; i++ {
 		for word, _ := range valueMap {
@@ -60,8 +89,12 @@ func HashText(weightedMap map[string]int) []int {
 	return sumArray
 }
 
-// Ovo treba jos popraviti
-func Compare(a []int, b []int) int {
+//poredi dva niza bajtova i vraca hemingovo rastojanje
+func Compare(val1 []byte, val2 []byte) int {
+	
+	a := HashText(GenerateWeightedMap(val1))
+	b := HashText(GenerateWeightedMap(val2))
+
 	result := 0
 	for i := 0; i < 256; i++ {
 		if a[i] != b[i] {

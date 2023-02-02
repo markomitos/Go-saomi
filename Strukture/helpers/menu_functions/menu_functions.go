@@ -1,12 +1,14 @@
 package menu_functions
 
 import (
+	"fmt"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/entry"
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
 	. "project/gosaomi/scan"
+	. "project/gosaomi/simhash"
 	. "project/gosaomi/token_bucket"
 	. "project/gosaomi/wal"
 	"time"
@@ -142,4 +144,23 @@ func LIST_SCAN(prefix string, pageLen uint32, pageNum uint32, memtable MemTable)
 	}
 
 	return true, scan.Keys, scan.Data
+}
+
+//Ukoliko se kljucevi nalaze u datoteci poredi ih i vraca hemingovo rastojanje izmedju vrednosti
+func SimHashCompare(key1 string, key2 string, mem MemTable, lru *LRUCache, bucket *TokenBucket) (int) {
+	found1, data1 := GET(key1, mem, lru, bucket)
+	found2, data2 := GET(key2, mem, lru, bucket)
+
+	if found1 == false {
+		fmt.Println("Kljuc 1 se ne nalazi u memoriji.")
+		return -1
+	}
+
+	if found2 == false {
+		fmt.Println("Kljuc 2 se ne nalazi u memoriji.")
+		return -1
+	}
+
+	return Compare(data1.Value, data2.Value)
+
 }
