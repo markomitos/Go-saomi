@@ -6,7 +6,7 @@ sstable_interval: 10
 bloom_falsepositive_rate: 2.0
 btree_num_of_children: 3
 skiplist_max_height: 10
-sstable_file_config: "multi"
+sstable_file_config: "single"
 token_cap: 20
 token_rate: 10
 lsm_max_level: 7

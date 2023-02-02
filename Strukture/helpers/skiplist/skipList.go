@@ -238,10 +238,18 @@ func (s *SkipList) RangeScan(minKey string, maxKey string, scan *Scan){
 		data := next.Data
 
 		if next.key >= minKey && next.key <= maxKey{
-			scan.FoundResults++
-			if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-				scan.Keys = append(scan.Keys, next.key)
-				scan.Data = append(scan.Data, data)
+			if !next.Data.Tombstone{
+				//Obelezimo dati kljuc da je procitan
+				scan.SelectedKeys[next.key] = true
+
+				scan.FoundResults++
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					scan.Keys = append(scan.Keys, next.key)
+					scan.Data = append(scan.Data, data)
+				}
+			} else {
+				//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+				scan.RemovedKeys[next.key] = true
 			}
 		} else if next.key > maxKey{
 			return
@@ -263,10 +271,18 @@ func (s *SkipList) ListScan(prefix string, scan *Scan){
 		data := next.Data
 
 		if strings.HasPrefix(next.key, prefix){
-			scan.FoundResults++
-			if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-				scan.Keys = append(scan.Keys, next.key)
-				scan.Data = append(scan.Data, data)
+			if !next.Data.Tombstone{
+				//Obelezimo dati kljuc da je procitan
+				scan.SelectedKeys[next.key] = true
+
+				scan.FoundResults++
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					scan.Keys = append(scan.Keys, next.key)
+					scan.Data = append(scan.Data, data)
+				}
+			} else {
+				//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+				scan.RemovedKeys[next.key] = true
 			}
 		} else if next.key > prefix{
 			return

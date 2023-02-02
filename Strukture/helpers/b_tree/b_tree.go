@@ -356,10 +356,18 @@ func (bTree *BTree) RangeScan(minKey string, maxKey string,node *BTreeNode, scan
 		bTree.RangeScan(minKey, maxKey, node.children[i], scan)
 		if i < len(node.keys) {
 			if node.keys[i] >= minKey && node.keys[i] <= maxKey{
-				scan.FoundResults++
-				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-					scan.Keys = append(scan.Keys, node.keys[i])
-					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				if !node.Values[node.keys[i]].Tombstone{
+					//Obelezimo dati kljuc da je procitan
+					scan.SelectedKeys[node.keys[i]] = true
+
+					scan.FoundResults++
+					if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+						scan.Keys = append(scan.Keys, node.keys[i])
+						scan.Data = append(scan.Data, node.Values[node.keys[i]])
+					}
+				} else {
+					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+					scan.RemovedKeys[node.keys[i]] = true
 				}
 			}
 		}
@@ -369,10 +377,18 @@ func (bTree *BTree) RangeScan(minKey string, maxKey string,node *BTreeNode, scan
 	} else {
 		for i := 0; i < len(node.keys); i++ {
 			if node.keys[i] >= minKey && node.keys[i] <= maxKey{
-				scan.FoundResults++
-				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-					scan.Keys = append(scan.Keys, node.keys[i])
-					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				if !node.Values[node.keys[i]].Tombstone{
+					//Obelezimo dati kljuc da je procitan
+					scan.SelectedKeys[node.keys[i]] = true
+
+					scan.FoundResults++
+					if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+						scan.Keys = append(scan.Keys, node.keys[i])
+						scan.Data = append(scan.Data, node.Values[node.keys[i]])
+					}
+				} else {
+					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+					scan.RemovedKeys[node.keys[i]] = true
 				}
 			}
 		}
@@ -390,10 +406,18 @@ func (bTree *BTree) ListScan(prefix string,node *BTreeNode, scan *Scan) {
 		bTree.ListScan(prefix, node.children[i], scan)
 		if i < len(node.keys) {
 			if strings.HasPrefix(node.keys[i], prefix){
-				scan.FoundResults++
-				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-					scan.Keys = append(scan.Keys, node.keys[i])
-					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				if !node.Values[node.keys[i]].Tombstone{
+					//Obelezimo dati kljuc da je procitan
+					scan.SelectedKeys[node.keys[i]] = true
+
+					scan.FoundResults++
+					if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+						scan.Keys = append(scan.Keys, node.keys[i])
+						scan.Data = append(scan.Data, node.Values[node.keys[i]])
+					}
+				} else {
+					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+					scan.RemovedKeys[node.keys[i]] = true
 				}
 			}
 		}
@@ -403,10 +427,18 @@ func (bTree *BTree) ListScan(prefix string,node *BTreeNode, scan *Scan) {
 	} else {
 		for i := 0; i < len(node.keys); i++ {
 			if strings.HasPrefix(node.keys[i], prefix){
-				scan.FoundResults++
-				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-					scan.Keys = append(scan.Keys, node.keys[i])
-					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				if !node.Values[node.keys[i]].Tombstone{
+					//Obelezimo dati kljuc da je procitan
+					scan.SelectedKeys[node.keys[i]] = true
+
+					scan.FoundResults++
+					if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+						scan.Keys = append(scan.Keys, node.keys[i])
+						scan.Data = append(scan.Data, node.Values[node.keys[i]])
+					}
+				} else {
+					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+					scan.RemovedKeys[node.keys[i]] = true
 				}
 			}
 		}

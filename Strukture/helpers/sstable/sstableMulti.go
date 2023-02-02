@@ -352,20 +352,41 @@ func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan)
 	// ------ Otvaramo index tabelu ------
 	indexFile := sstable.OpenFile("index.bin")
 	currentIndex := new(Index)
-	chosenIndexOffset := make([]uint64, 0) //Cuva offsete odabranih indeksa koji treba da budu na toj stranici
+	
+	dataFile := sstable.OpenFile("data.bin") //Otvaramo data fajl za proveru
 
 	//Prolazimo kroz sve nadjene indeksne delove
 	for i := 0; i < len(chosenIntervals); i++{
+		if scan.FoundResults > scan.SelectedPageEnd {
+			break
+		}
+
 		indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
 
 		//trazimo redom
 		for i := 0; i < int(sstable.intervalSize); i++ {
 			currentIndex = byteToIndex(indexFile)
 			if currentIndex.Key >= minKey && currentIndex.Key <= maxKey{
-				scan.FoundResults++
-				//Ukoliko je u opsegu nase stranice pamtimo u Scan
-				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-					chosenIndexOffset = append(chosenIndexOffset, currentIndex.Offset)
+
+				// -------- pristupamo disku i proveravamo podatak --------
+				foundKey, foundData := ByteToData(dataFile, currentIndex.Offset)
+				if !foundData.Tombstone{
+					//Proveravamo da li je obelezen kao obrisan ili je vec dodat
+					if !scan.RemovedKeys[foundKey] && !scan.SelectedKeys[foundKey]{
+						scan.SelectedKeys[foundKey] = true //Obelezimo da je dodat
+
+						scan.FoundResults++
+						//Ukoliko je u opsegu nase stranice pamtimo u Scan
+						if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+							scan.Keys = append(scan.Keys, foundKey)
+							scan.Data = append(scan.Data, foundData)
+						} else if scan.FoundResults > scan.SelectedPageEnd {
+							break
+						}
+					}
+				}  else {
+					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+					scan.RemovedKeys[foundKey] = true
 				}
 			} else if currentIndex.Key > maxKey{
 				break
@@ -378,21 +399,9 @@ func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan)
 		log.Fatal(err)
 	}
 
-	//Prikupljamo podatke iz data tabele i ubacujemo u Scan
-	if len(chosenIndexOffset) > 0{
-		// ------ Pristupamo disku i uzimamo podtak ------
-		dataFile := sstable.OpenFile("data.bin")
-
-		for i:=0; i<len(chosenIndexOffset); i++{
-			foundKey, foundData := ByteToData(dataFile, chosenIndexOffset[i])
-			scan.Keys = append(scan.Keys, foundKey)
-			scan.Data = append(scan.Data, foundData)
-		}
-
-		err = dataFile.Close()
-		if err != nil{
-			log.Fatal(err)
-		}
+	err = dataFile.Close() //Zatvaramo data zonu
+	if err != nil{
+		log.Fatal(err)
 	}
 
 }
@@ -437,20 +446,40 @@ func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
 	// ------ Otvaramo index tabelu ------
 	indexFile := sstable.OpenFile("index.bin")
 	currentIndex := new(Index)
-	chosenIndexOffset := make([]uint64, 0) //Cuva offsete odabranih indeksa koji treba da budu na toj stranici
+
+	dataFile := sstable.OpenFile("data.bin") //Otvaramo data fajl za proveru
 
 	//Prolazimo kroz sve nadjene indeksne delove
 	for i := 0; i < len(chosenIntervals); i++{
+		if scan.FoundResults > scan.SelectedPageEnd {
+			break
+		}
+
 		indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
 
 		//trazimo redom
 		for i := 0; i < int(sstable.intervalSize); i++ {
 			currentIndex = byteToIndex(indexFile)
 			if strings.HasPrefix(currentIndex.Key, prefix){
-				scan.FoundResults++
-				//Ukoliko je u opsegu nase stranice pamtimo u Scan
-				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
-					chosenIndexOffset = append(chosenIndexOffset, currentIndex.Offset)
+				// -------- pristupamo disku i proveravamo podatak --------
+				foundKey, foundData := ByteToData(dataFile, currentIndex.Offset)
+				if !foundData.Tombstone{
+					//Proveravamo da li je obelezen kao obrisan ili je vec dodat
+					if !scan.RemovedKeys[foundKey] && !scan.SelectedKeys[foundKey]{
+						scan.SelectedKeys[foundKey] = true //Obelezimo da je dodat
+
+						scan.FoundResults++
+						//Ukoliko je u opsegu nase stranice pamtimo u Scan
+						if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+							scan.Keys = append(scan.Keys, foundKey)
+							scan.Data = append(scan.Data, foundData)
+						} else if scan.FoundResults > scan.SelectedPageEnd {
+							break
+						}
+					}
+				} else {
+					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
+					scan.RemovedKeys[foundKey] = true
 				}
 			} else if currentIndex.Key > prefix{
 				break
@@ -463,21 +492,9 @@ func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
 		log.Fatal(err)
 	}
 
-	//Prikupljamo podatke iz data tabele i ubacujemo u Scan
-	if len(chosenIndexOffset) > 0{
-		// ------ Pristupamo disku i uzimamo podtak ------
-		dataFile := sstable.OpenFile("data.bin")
-
-		for i:=0; i<len(chosenIndexOffset); i++{
-			foundKey, foundData := ByteToData(dataFile, chosenIndexOffset[i])
-			scan.Keys = append(scan.Keys, foundKey)
-			scan.Data = append(scan.Data, foundData)
-		}
-
-		err = dataFile.Close()
-		if err != nil{
-			log.Fatal(err)
-		}
+	err = dataFile.Close() //Zatvaramo data zonu
+	if err != nil{
+		log.Fatal(err)
 	}
 
 }

@@ -5,12 +5,13 @@ import (
 	"math/rand"
 	"os"
 
+	// "strconv"
+
 	"time"
 
-	// "strconv"
 	// "time"
 
-	// . "project/gosaomi/dataType"
+	. "project/gosaomi/dataType"
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
@@ -116,37 +117,37 @@ func main() {
 	// 	time.Sleep(time.Millisecond * 100)
 	// }
 	
-	start := time.Now()
-	found, data := GET("2", memtable, lru, bucket)
-	fmt.Printf("main, execution time %s\n", time.Since(start))
-	if found {
-		fmt.Println("2")
-		data.Print()
-	} else {
-		fmt.Println("Ne postoji podatak sa kljucem 2")
-	}
+	// start := time.Now()
+	// found, data := GET("2", memtable, lru, bucket)
+	// fmt.Printf("main, execution time %s\n", time.Since(start))
+	// if found {
+	// 	fmt.Println("2")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
+	// }
 
-	start = time.Now()
-	found, data = GET("2", memtable, lru, bucket)
-	fmt.Printf("main, execution time %s\n", time.Since(start))
-	if found {
-		fmt.Println("2")
-		data.Print()
-	} else {
-		fmt.Println("Ne postoji podatak sa kljucem 2")
-	}
+	// start = time.Now()
+	// found, data = GET("2", memtable, lru, bucket)
+	// fmt.Printf("main, execution time %s\n", time.Since(start))
+	// if found {
+	// 	fmt.Println("2")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
+	// }
 
-	DELETE("2", memtable, lru, bucket)
+	// DELETE("2", memtable, lru, bucket)
 
-	start = time.Now()
-	found, data = GET("2", memtable, lru, bucket)
-	fmt.Printf("main, execution time %s\n", time.Since(start))
-	if found {
-		fmt.Println("2")
-		data.Print()
-	} else {
-		fmt.Println("Ne postoji podatak sa kljucem 2")
-	}
+	// start = time.Now()
+	// found, data = GET("2", memtable, lru, bucket)
+	// fmt.Printf("main, execution time %s\n", time.Since(start))
+	// if found {
+	// 	fmt.Println("2")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
+	// }
 
 
 	// found, data = GET("20", memtable, lru, bucket)
@@ -175,19 +176,27 @@ func main() {
 	// 	fmt.Println("Ne postoji podatak sa kljucem abc")
 	// }
 
+	// DELETE("560", memtable, lru, bucket)
 
-	// start := time.Now()
-	// found, keys, dataArr := LIST_SCAN("11", 7 , 2, memtable)
-	// fmt.Printf("main, execution time %s\n", time.Since(start))
+	data := new(Data)
+	data.Value = []byte("aligator")
+	data.Timestamp = uint64(time.Now().Unix())
+	data.Tombstone = false
+	PUT("581",data,memtable,bucket)
 
-	// if !found {
-	// 	fmt.Println("Nema pronadjenih rezultata")
-	// } else {
-	// 	for i:=0; i < len(keys); i++{
-	// 		fmt.Println(keys[i])
-	// 		dataArr[i].Print()
-	// 	}
-	// }
+	start := time.Now()
+	found, keys, dataArr := RANGE_SCAN("1", "99999", 7 , 1, memtable)
+	fmt.Printf("main, execution time %s\n", time.Since(start))
+
+	if !found {
+		fmt.Println("Nema pronadjenih rezultata")
+	} else {
+		for i:=0; i < len(keys); i++{
+			fmt.Println(keys[i])
+			dataArr[i].Print()
+			fmt.Println("********************************")
+		}
+	}
 
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")

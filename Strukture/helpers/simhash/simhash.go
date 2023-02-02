@@ -1,4 +1,4 @@
-package main
+package simhash
 
 import (
 	"crypto/md5"
