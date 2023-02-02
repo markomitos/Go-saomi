@@ -379,6 +379,40 @@ func (bTree *BTree) RangeScan(minKey string, maxKey string,node *BTreeNode, scan
 	}
 }
 
+func (bTree *BTree) ListScan(prefix string,node *BTreeNode, scan *Scan) {
+	if node == nil {
+		return
+	}
+	if scan.FoundResults >= scan.SelectedPageEnd{
+		return
+	}
+	for i := 0; i < len(node.children)-1; i++ {
+		bTree.ListScan(prefix, node.children[i], scan)
+		if i < len(node.keys) {
+			if strings.HasPrefix(node.keys[i], prefix){
+				scan.FoundResults++
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					scan.Keys = append(scan.Keys, node.keys[i])
+					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				}
+			}
+		}
+	}
+	if len(node.children) > 0 {
+		bTree.ListScan(prefix, node.children[len(node.children)-1], scan)
+	} else {
+		for i := 0; i < len(node.keys); i++ {
+			if strings.HasPrefix(node.keys[i], prefix){
+				scan.FoundResults++
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					scan.Keys = append(scan.Keys, node.keys[i])
+					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				}
+			}
+		}
+	}
+}
+
 // Ispis b stabla
 func (t *BTree) PrintBTree() {
 	var queue []*BTreeNode

@@ -102,6 +102,8 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 
 // ------------ RANGE SCAN ------------
 // vraca niz kljuceva i niz podataka koji su u opsegu datog intervala
+// Vraca rezultate u opsegu od najnovijeg do najstarijeg
+// To postize tako sto iterira od najnovije do najstarije sstabele
 func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, memtable MemTable) (bool, []string, []*Data){
 	lsm := ReadLsm()
 	scan := NewScan(pageLen, pageNum)
@@ -111,6 +113,28 @@ func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, me
 	if scan.FoundResults < scan.SelectedPageEnd{
 		//Trazimo u svim sstabelama i azuriramo scan nakon svakog poklapanja
 		lsm.RangeScan(minKey, maxKey, scan)
+	}
+
+	if len(scan.Keys) == 0{
+		return false, nil, nil
+	}
+
+	return true, scan.Keys, scan.Data
+}
+
+// ------------ LIST SCAN ------------
+// vraca niz kljuceva i niz podataka koji pocinju datim prefiksom
+// Vraca rezultate u opsegu od najnovijeg do najstarijeg
+// To postize tako sto iterira od najnovije do najstarije sstabele
+func LIST_SCAN(prefix string, pageLen uint32, pageNum uint32, memtable MemTable) (bool, []string, []*Data){
+	lsm := ReadLsm()
+	scan := NewScan(pageLen, pageNum)
+
+	//Trazimo prvo u memtabeli
+	memtable.ListScan(prefix, scan)
+	if scan.FoundResults < scan.SelectedPageEnd{
+		//Trazimo u svim sstabelama i azuriramo scan nakon svakog poklapanja
+		lsm.ListScan(prefix, scan)
 	}
 
 	if len(scan.Keys) == 0{

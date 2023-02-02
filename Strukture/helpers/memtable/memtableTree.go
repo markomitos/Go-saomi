@@ -83,3 +83,8 @@ func (m *MemTableTree) Remove(key string) {
 func (m *MemTableTree) RangeScan(minKey string, maxKey string, scan *Scan){
 	m.btree.RangeScan(minKey, maxKey, m.btree.Root, scan)
 }
+
+//Trazi podatke ciji kljucevi imaju dati prefix
+func (m *MemTableTree) ListScan(prefix string, scan *Scan){
+	m.btree.ListScan(prefix, m.btree.Root, scan)
+}

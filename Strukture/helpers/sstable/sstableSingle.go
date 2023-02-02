@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	. "project/gosaomi/bloom"
@@ -12,6 +13,7 @@ import (
 	. "project/gosaomi/entry"
 	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/scan"
+	"strings"
 )
 
 type SSTableSingle struct {
@@ -360,6 +362,7 @@ func (sstable *SSTableSingle) GoToData() (*os.File, uint64){
 }
 
 // ------------- RANGE SCAN -------------
+//Prolazi kroz sstabelu i trazi kljuceve koji zadovoljavaju trazeni interval
 func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan)  {
 
 	//Otvaramo fajl i citamo header
@@ -424,6 +427,101 @@ func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan
 					break
 				}
 			} else if currentIndex.Key > maxKey{
+				break
+			}
+		}
+	}
+
+
+	// ------ Pristupamo disku i uzimamo podatak ------
+	//Prikupljamo podatke iz data tabele i ubacujemo u Scan
+	if len(chosenIndexOffset) > 0{
+
+		for i:=0; i<len(chosenIndexOffset); i++{
+			foundKey, foundData := ByteToData(sstableFile, chosenIndexOffset[i] + dataStart)
+			scan.Keys = append(scan.Keys, foundKey)
+			scan.Data = append(scan.Data, foundData)
+		}
+	}
+	sstableFile.Close()
+}
+
+// ------------- LIST SCAN -------------
+//Prolazi kroz sstabelu i trazi kljuceve koji pocinju zadatim prefiksom
+func (sstable *SSTableSingle) ListScan(prefix string, scan *Scan)  {
+
+	//Otvaramo fajl i citamo header
+	sstableFile := sstable.OpenFile("sstable.bin")
+
+	dataSize,indexSize,_ := sstable.ReadHeader(sstableFile)
+
+	//Offseti na pocetke zona
+	dataStart := uint64(24)
+	indexStart := dataStart + dataSize
+	summaryStart := indexStart + indexSize
+
+	//Proveravamo da li je kljuc van opsega
+	sstableFile.Seek(int64(summaryStart), 0)
+	summary :=  byteToSummary(sstableFile)
+
+	//najmanje duzine stringova
+	//Trazimo koji string je manji i onda proveravamo toliko cifara, da ne bi izasli iz index range-a
+	minimumLenFirst := int(math.Min(float64(len(prefix)), float64(len(summary.FirstKey))))
+	minimumLenLast := int(math.Min(float64(len(prefix)), float64(len(summary.LastKey))))
+
+	if prefix[:minimumLenFirst] < summary.FirstKey[:minimumLenFirst] || prefix[:minimumLenLast] > summary.LastKey[:minimumLenLast] {
+		err := sstableFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return //Preskacemo ovu sstabelu jer kljucevi nisu u opsegu
+	}
+
+	chosenIntervals := make([]*Index, 0) //Cuva intervale koji treba da se pregledaju
+	for i := 1; i < len(summary.Intervals); i++ {
+		
+		//za trenutan interval
+		minimumLen := int(math.Min(float64(len(prefix)), float64(len(summary.Intervals[i].Key))))
+		if summary.Intervals[i].Key[:minimumLen] < prefix[:minimumLen] {
+			continue
+		}
+		//za prethodni interval
+		minimumLen = int(math.Min(float64(len(prefix)), float64(len(summary.Intervals[i-1].Key))))
+		if prefix[:minimumLen] < summary.Intervals[i-1].Key[:minimumLen]{
+			break
+		}
+		chosenIntervals = append(chosenIntervals, summary.Intervals[i-1])
+	}
+
+	if len(chosenIntervals) < 1 {
+		return
+	}
+
+	// ------ Otvaramo index tabelu ------
+	currentIndex := new(Index)
+	chosenIndexOffset := make([]uint64, 0) //Cuva offsete odabranih indeksa koji treba da budu na toj stranici
+	
+
+	//Prolazimo kroz sve nadjene indeksne delove
+	for i := 0; i < len(chosenIntervals); i++{
+		if scan.FoundResults > scan.SelectedPageEnd {
+			break
+		}
+
+		sstableFile.Seek(int64(chosenIntervals[i].Offset + indexStart), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+
+		//trazimo redom
+		for i := 0; i < int(sstable.intervalSize); i++ {
+			currentIndex = byteToIndex(sstableFile)
+			if strings.HasPrefix(currentIndex.Key, prefix){
+				scan.FoundResults++
+				//Ukoliko je u opsegu nase stranice pamtimo u Scan
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					chosenIndexOffset = append(chosenIndexOffset, currentIndex.Offset)
+				} else if scan.FoundResults > scan.SelectedPageEnd {
+					break
+				}
+			} else if currentIndex.Key > prefix{
 				break
 			}
 		}

@@ -14,6 +14,7 @@ type MemTable interface {
 	Flush()
 	Print()
 	RangeScan(minKey string, maxKey string, scan *Scan)
+	ListScan(prefix string, scan *Scan)
 }
 
 //Konstruktor za memtabelu

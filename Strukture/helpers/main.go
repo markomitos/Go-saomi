@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"os"
 
-	// "strconv"
 	"time"
 
 	// "strconv"
@@ -117,15 +116,38 @@ func main() {
 	// 	time.Sleep(time.Millisecond * 100)
 	// }
 	
-	// found, data := GET("2", memtable, lru, bucket)
-	// if found {
-	// 	fmt.Println("2")
-	// 	data.Print()
-	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
-	// }
+	start := time.Now()
+	found, data := GET("2", memtable, lru, bucket)
+	fmt.Printf("main, execution time %s\n", time.Since(start))
+	if found {
+		fmt.Println("2")
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem 2")
+	}
 
-	// DELETE("20", memtable, lru, bucket)
+	start = time.Now()
+	found, data = GET("2", memtable, lru, bucket)
+	fmt.Printf("main, execution time %s\n", time.Since(start))
+	if found {
+		fmt.Println("2")
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem 2")
+	}
+
+	DELETE("2", memtable, lru, bucket)
+
+	start = time.Now()
+	found, data = GET("2", memtable, lru, bucket)
+	fmt.Printf("main, execution time %s\n", time.Since(start))
+	if found {
+		fmt.Println("2")
+		data.Print()
+	} else {
+		fmt.Println("Ne postoji podatak sa kljucem 2")
+	}
+
 
 	// found, data = GET("20", memtable, lru, bucket)
 	// if found {
@@ -154,18 +176,18 @@ func main() {
 	// }
 
 
-	start := time.Now()
-	found, keys, dataArr := RANGE_SCAN("1", "999",10 , 6, memtable)
-	fmt.Printf("main, execution time %s\n", time.Since(start))
+	// start := time.Now()
+	// found, keys, dataArr := LIST_SCAN("11", 7 , 2, memtable)
+	// fmt.Printf("main, execution time %s\n", time.Since(start))
 
-	if !found {
-		fmt.Println("Nema pronadjenih rezultata")
-	} else {
-		for i:=0; i < len(keys); i++{
-			fmt.Println(keys[i])
-			dataArr[i].Print()
-		}
-	}
+	// if !found {
+	// 	fmt.Println("Nema pronadjenih rezultata")
+	// } else {
+	// 	for i:=0; i < len(keys); i++{
+	// 		fmt.Println(keys[i])
+	// 		dataArr[i].Print()
+	// 	}
+	// }
 
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")

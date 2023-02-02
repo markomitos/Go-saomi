@@ -374,7 +374,9 @@ func (lsm *Lsm) Find(key string) (bool, *Data){
 
 }
 
-// range scan u lsm-u napraviti koji iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
+// ---------- SKENIRANJE VISE PODATAKA ----------
+
+//iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
 func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
 	//iteriramo po nivoima
 	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
@@ -383,6 +385,22 @@ func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
 		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
 			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
 			currentSSTable.RangeScan(minKey,maxKey,scan)
+			if scan.FoundResults >= scan.SelectedPageEnd{
+				return
+			}
+		}
+	}
+}
+
+//iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
+func (lsm *Lsm) ListScan(prefix string, scan *Scan) {
+	//iteriramo po nivoima
+	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
+		size := getSSTableSize(currentLevel)
+		//iteriramo po sstabelama kako su dodavane(od najveceg indeksa, noviji ce se prvi citati)
+		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
+			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+			currentSSTable.ListScan(prefix,scan)
 			if scan.FoundResults >= scan.SelectedPageEnd{
 				return
 			}

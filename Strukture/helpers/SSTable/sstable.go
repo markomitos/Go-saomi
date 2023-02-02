@@ -20,8 +20,9 @@ type SST interface {
 	makeFiles() []*os.File
 	Flush(keys []string, values []*Data)
 	Find(key string) (bool, *Data)
-	GoToData() (*os.File, uint64)
 	RangeScan(minKey string, maxKey string, scan *Scan)
+	ListScan(prefix string, scan *Scan)
+	GoToData() (*os.File, uint64)
 	ReadData()
 }
 
@@ -42,7 +43,7 @@ func NewSSTable(size uint32, directory string) SST {
 	var sstable SST
 	if config.SSTableFileConfig == "single" {
 		sstable = NewSSTableSingle(size, directory)
-	} else if config.SSTableFileConfig == "multiple" {
+	} else if config.SSTableFileConfig == "multi" {
 		sstable = NewSSTableMulti(size, directory)
 	}
 

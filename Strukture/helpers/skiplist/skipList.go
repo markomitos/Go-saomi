@@ -141,24 +141,25 @@ func (s *SkipList) updateHeight() {
 }
 
 // ovo je fizicko brisanje
-// func (s *SkipList) Remove(key string) {
-// 	node, found := s.Find(key)
-// 	currentNode := s.head
-// 	if found {
-// 		//Prevezujemo pokazivace do visine pronadjenog node-a
-// 		for currentLevel := len(node.next) - 1; currentLevel >= 0; currentLevel-- {
-// 			for currentNode != nil {
-// 				if currentNode.next[currentLevel].key == key {
-// 					//Prevezi
-// 					currentNode.next[currentLevel] = currentNode.next[currentLevel].next[currentLevel]
-// 					break
-// 				}
-// 				currentNode = currentNode.next[currentLevel]
-// 			}
-// 		}
-// 	}
-// 	s.updateHeight()
-// }
+// Ne koristimo nigde
+func (s *SkipList) RemovePhysical(key string) {
+	node, found := s.Find(key)
+	currentNode := s.head
+	if found {
+		//Prevezujemo pokazivace do visine pronadjenog node-a
+		for currentLevel := len(node.next) - 1; currentLevel >= 0; currentLevel-- {
+			for currentNode != nil {
+				if currentNode.next[currentLevel].key == key {
+					//Prevezi
+					currentNode.next[currentLevel] = currentNode.next[currentLevel].next[currentLevel]
+					break
+				}
+				currentNode = currentNode.next[currentLevel]
+			}
+		}
+	}
+	s.updateHeight()
+}
 
 // ovo je logicno brisanje
 func (s *SkipList) Remove(key string) bool {
@@ -246,6 +247,30 @@ func (s *SkipList) RangeScan(minKey string, maxKey string, scan *Scan){
 			return
 		}
 
+
+		currentNode = next
+	}
+}
+
+func (s *SkipList) ListScan(prefix string, scan *Scan){
+	currentNode := s.head
+	for currentNode.next[0] != nil {
+		if scan.FoundResults >= scan.SelectedPageEnd{
+			return
+		}
+
+		next := currentNode.next[0]
+		data := next.Data
+
+		if strings.HasPrefix(next.key, prefix){
+			scan.FoundResults++
+			if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+				scan.Keys = append(scan.Keys, next.key)
+				scan.Data = append(scan.Data, data)
+			}
+		} else if next.key > prefix{
+			return
+		}
 
 		currentNode = next
 	}

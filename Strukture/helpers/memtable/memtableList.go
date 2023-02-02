@@ -1,6 +1,7 @@
 package memtable
 
 import (
+	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/scan"
@@ -17,8 +18,9 @@ type MemTableList struct {
 
 // konstuktor za skiplistu
 func NewMemTableList(s uint) *MemTableList {
+	config := GetConfig()
 	m := new(MemTableList)
-	m.slist = NewSkipList(s)
+	m.slist = NewSkipList(config.SkiplistMaxHeight)
 	m.size = s
 	return m
 }
@@ -74,6 +76,12 @@ func (m *MemTableList) Remove(key string) {
 	}
 }
 
+//Trazi podatke ciji kljucevi spadaju u dati opseg
 func (m *MemTableList) RangeScan(minKey string, maxKey string, scan *Scan){
 	m.slist.RangeScan(minKey, maxKey, scan)
+}
+
+//Trazi podatke ciji kljucevi imaju dati prefix
+func (m *MemTableList) ListScan(prefix string, scan *Scan){
+	m.slist.ListScan(prefix, scan)
 }
