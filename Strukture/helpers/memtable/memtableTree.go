@@ -5,6 +5,7 @@ import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/lsm"
+	. "project/gosaomi/scan"
 	. "project/gosaomi/sstable"
 	. "project/gosaomi/wal"
 	"time"
@@ -76,4 +77,9 @@ func (m *MemTableTree) Remove(key string) {
 		data.Value = make([]byte, 0)
 		m.Put(key,data)
 	}
+}
+
+//Trazi podatke ciji kljucevi spadaju u dati opseg
+func (m *MemTableTree) RangeScan(minKey string, maxKey string, scan *Scan){
+	m.btree.RangeScan(minKey, maxKey, m.btree.Root, scan)
 }

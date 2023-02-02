@@ -15,11 +15,11 @@ type CountMinSketch struct {
 
 func NewCountMinSketch(Epsilon float64, Delta float64) *CountMinSketch {
 	cms := new(CountMinSketch)
-	cms.K = CalculateK(Delta)
-	cms.M = CalculateM(Epsilon)
+	cms.K = CmsCalculateK(Delta)
+	cms.M = CmsCalculateM(Epsilon)
 	cms.Epsilon = Epsilon
 	cms.Delta = Delta
-	cms.HashFuncs = CreateHashFunctions(cms.K)
+	cms.HashFuncs = CmsCreateHashFunctions(cms.K)
 	cms.ValueTable = make([][]uint32, cms.K)
 	for i := range cms.ValueTable {
 		cms.ValueTable[i] = make([]uint32, cms.M)

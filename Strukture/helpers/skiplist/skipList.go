@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/scan"
 	"strings"
 )
 
@@ -195,7 +196,6 @@ func (s *SkipList) GetAllNodes(keys *[]string, values *[]*Data) {
 
 		currentNode = next
 	}
-	return
 }
 
 func (s *SkipList) Print() {
@@ -224,4 +224,29 @@ func (s *SkipList) Print() {
 		fmt.Println()
 	}
 	fmt.Println(strings.Repeat("_", 100))
+}
+
+func (s *SkipList) RangeScan(minKey string, maxKey string, scan *Scan){
+	currentNode := s.head
+	for currentNode.next[0] != nil {
+		if scan.FoundResults >= scan.SelectedPageEnd{
+			return
+		}
+
+		next := currentNode.next[0]
+		data := next.Data
+
+		if next.key >= minKey && next.key <= maxKey{
+			scan.FoundResults++
+			if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+				scan.Keys = append(scan.Keys, next.key)
+				scan.Data = append(scan.Data, data)
+			}
+		} else if next.key > maxKey{
+			return
+		}
+
+
+		currentNode = next
+	}
 }

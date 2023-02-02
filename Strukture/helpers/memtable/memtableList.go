@@ -3,6 +3,7 @@ package memtable
 import (
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/lsm"
+	. "project/gosaomi/scan"
 	. "project/gosaomi/skiplist"
 	. "project/gosaomi/sstable"
 	. "project/gosaomi/wal"
@@ -71,4 +72,8 @@ func (m *MemTableList) Remove(key string) {
 		data.Value = make([]byte, 0)
 		m.Put(key,data)
 	}
+}
+
+func (m *MemTableList) RangeScan(minKey string, maxKey string, scan *Scan){
+	m.slist.RangeScan(minKey, maxKey, scan)
 }

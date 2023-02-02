@@ -9,6 +9,7 @@ import (
 	. "project/gosaomi/bloom"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/entry"
 	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/scan"
 )
@@ -383,7 +384,7 @@ func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan
 		return //Preskacemo ovu sstabelu jer kljucevi nisu u opsegu
 	}
 
-	chosenIntervals := make([]*Index, 0)
+	chosenIntervals := make([]*Index, 0) //Cuva intervale koji treba da se pregledaju
 	for i := 1; i < len(summary.Intervals); i++ {
 		if summary.Intervals[i].Key < minKey {
 			continue
@@ -405,6 +406,10 @@ func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan
 
 	//Prolazimo kroz sve nadjene indeksne delove
 	for i := 0; i < len(chosenIntervals); i++{
+		if scan.FoundResults > scan.SelectedPageEnd {
+			break
+		}
+
 		sstableFile.Seek(int64(chosenIntervals[i].Offset + indexStart), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
 
 		//trazimo redom
@@ -415,6 +420,8 @@ func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan
 				//Ukoliko je u opsegu nase stranice pamtimo u Scan
 				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
 					chosenIndexOffset = append(chosenIndexOffset, currentIndex.Offset)
+				} else if scan.FoundResults > scan.SelectedPageEnd {
+					break
 				}
 			} else if currentIndex.Key > maxKey{
 				break
@@ -435,4 +442,26 @@ func (sstable *SSTableSingle) RangeScan(minKey string, maxKey string, scan *Scan
 		}
 	}
 	sstableFile.Close()
+}
+
+func (sstable *SSTableSingle) ReadData() {
+	file := sstable.OpenFile("sstable.bin")
+	dataSize,_,_ := sstable.ReadHeader(file)
+
+	//Offseti na pocetke zona
+	dataStart := uint64(24)
+	indexStart := dataStart + dataSize
+
+	for {
+		currentOffset, err := file.Seek(0,1)
+		if err != nil{
+			log.Fatal(err)
+		}
+		if uint64(currentOffset) >= indexStart {
+			break
+		}
+		entry := ReadEntry(file)
+		entry.Print()
+	}
+	file.Close()
 }

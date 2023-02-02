@@ -33,7 +33,7 @@ func PUT(key string, data *Data, memtable MemTable, bucket *TokenBucket) bool {
 }
 
 //Logicko brisanje
-func DELETE(key string, memtable MemTable, bucket *TokenBucket) bool {
+func DELETE(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) bool {
 	if !bucket.Take() {
 		return false
 	} 
@@ -49,10 +49,12 @@ func DELETE(key string, memtable MemTable, bucket *TokenBucket) bool {
 
 
 	//Brisemo u memtable-u
+	//Ukoliko se ne nalazi u OM poslace se novi put zahtev automatski
 	memtable.Remove(key)
 
-	//TO DO: Brisemo u cache-u
-	
+	//Brisemo u cache-u
+	lru.Delete(key)
+
 	return true
 }
 
@@ -98,13 +100,18 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 	return false, nil
 }
 
-// RANGE SCAN
-func RangeScan(minKey string, maxKey string, pageLen uint32, pageNum uint32) (bool, []string, []*Data){
+// ------------ RANGE SCAN ------------
+// vraca niz kljuceva i niz podataka koji su u opsegu datog intervala
+func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, memtable MemTable) (bool, []string, []*Data){
 	lsm := ReadLsm()
 	scan := NewScan(pageLen, pageNum)
 
-	//update-a se scan
-	lsm.RangeScan(minKey, maxKey, scan)
+	//Trazimo prvo u memtabeli
+	memtable.RangeScan(minKey, maxKey, scan)
+	if scan.FoundResults < scan.SelectedPageEnd{
+		//Trazimo u svim sstabelama i azuriramo scan nakon svakog poklapanja
+		lsm.RangeScan(minKey, maxKey, scan)
+	}
 
 	if len(scan.Keys) == 0{
 		return false, nil, nil

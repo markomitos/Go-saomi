@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	// "strconv"
 	// "time"
@@ -16,6 +18,27 @@ import (
 	. "project/gosaomi/wal"
 	// . "project/gosaomi/sstable"
 )
+
+//RANDOM STRING GENERATOR
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
+
+func StringWithCharset(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+func RandomString(length int) string {
+	return StringWithCharset(length, charset)
+}
+//--------------------------
+
 
 func menu() {
 	fmt.Println("1 - PUT")
@@ -60,11 +83,12 @@ func menu() {
 }
 
 func main() {
-	//Ucitavamo strukturu fajlova
+	//inicijalizujemo strukturu fajlova
 	InitializeLsm()
 	
 	//Ucitavamo CACHE (LRU)
 	lru := ReadLru()
+	fmt.Println(lru)
 
 	//Na pocetku ucitavamo iz WAL-a u memtabelu
 	wal := NewWriteAheadLog("files/wal")
@@ -75,14 +99,14 @@ func main() {
 	bucket := NewTokenBucket()
 	fmt.Println(bucket)
 
-	
+	// RANFOM STRING GENERATOR
 
 	// for i:=0; i < 586; i++{
 	// 	data := new(Data)
 	// 	data.Value = []byte("majmun")
 	// 	data.Timestamp = uint64(time.Now().Unix())
 	// 	data.Tombstone = false
-	// 	key := strconv.Itoa(i)
+	// 	key := RandomString(5)
 		
 	// 	if !PUT(key,data,memtable,bucket){
 	// 		fmt.Println("MAJMUNE")
@@ -92,43 +116,55 @@ func main() {
 	// 	time.Sleep(time.Millisecond * 100)
 	// }
 	
-	found, data := GET("2", memtable, lru, bucket)
-	if found {
-		fmt.Println("2")
-		data.Print()
-	} else {
-		fmt.Println("Ne postoji podatak sa kljucem 2")
-	}
+	// found, data := GET("2", memtable, lru, bucket)
+	// if found {
+	// 	fmt.Println("2")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
+	// }
 
-	DELETE("20", memtable, bucket)
+	// DELETE("20", memtable, lru, bucket)
 
-	found, data = GET("20", memtable, lru, bucket)
-	if found {
-		fmt.Println("20")
-		data.Print()
-	} else {
-		fmt.Println("Ne postoji podatak sa kljucem 20")
-	}
+	// found, data = GET("20", memtable, lru, bucket)
+	// if found {
+	// 	fmt.Println("20")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem 20")
+	// }
 
 	// RunCompact()
 
-	found, data = GET("3", memtable, lru, bucket)
-	if found {
-		fmt.Println("3")
-		data.Print()
+	// found, data = GET("3", memtable, lru, bucket)
+	// if found {
+	// 	fmt.Println("3")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem 3")
+	// }
+
+	// found, data = GET("abc", memtable, lru, bucket)
+	// if found {
+	// 	fmt.Println("abc")
+	// 	data.Print()
+	// } else {
+	// 	fmt.Println("Ne postoji podatak sa kljucem abc")
+	// }
+
+
+	start := time.Now()
+	found, keys, dataArr := RANGE_SCAN("bbbbb", "uuuuu",10 , 3, memtable)
+	fmt.Printf("main, execution time %s\n", time.Since(start))
+
+	if !found {
+		fmt.Println("Nema pronadjenih rezultata")
 	} else {
-		fmt.Println("Ne postoji podatak sa kljucem 3")
+		for i:=0; i < len(keys); i++{
+			fmt.Println(keys[i])
+			dataArr[i].Print()
+		}
 	}
-
-	found, data = GET("abc", memtable, lru, bucket)
-	if found {
-		fmt.Println("abc")
-		data.Print()
-	} else {
-		fmt.Println("Ne postoji podatak sa kljucem abc")
-	}
-
-
 
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")

@@ -211,7 +211,12 @@ func (wal *WriteAheadLog) InitiateMemTable() ([]string,[]*Data) {
 	keys := make([]string,0)
 	dataArr := make([]*Data, 0)
 
-	file, err := os.Open(wal.generateSegmentFilename())
+	offset := wal.current_offset
+	if offset != 0{
+		offset--
+	}
+
+	file, err := os.Open(wal.generateSegmentFilename(offset))
 	if err != nil {
 		if os.IsNotExist(err){
 			return keys, dataArr
@@ -230,7 +235,7 @@ func (wal *WriteAheadLog) InitiateMemTable() ([]string,[]*Data) {
 		}
 		timestamp := binary.BigEndian.Uint64(entry.Timestamp)
 		data := NewData(entry.Value, tombstone, timestamp)
-		key := string(entry.Value)
+		key := string(entry.Key)
 
 		keys = append(keys, key)
 		dataArr = append(dataArr, data)

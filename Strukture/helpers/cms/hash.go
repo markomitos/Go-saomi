@@ -17,7 +17,7 @@ func (h CmsHashWithSeed) Hash(data []byte) uint64 {
 	return binary.BigEndian.Uint64(fn.Sum(nil))
 }
 
-func CreateHashFunctions(k uint32) []CmsHashWithSeed {
+func CmsCreateHashFunctions(k uint32) []CmsHashWithSeed {
 	h := make([]CmsHashWithSeed, k)
 	ts := uint32(time.Now().Unix())
 	for i := uint32(0); i < k; i++ {

@@ -376,7 +376,6 @@ func (lsm *Lsm) Find(key string) (bool, *Data){
 
 // range scan u lsm-u napraviti koji iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
 func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
-
 	//iteriramo po nivoima
 	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
 		size := getSSTableSize(currentLevel)
@@ -389,5 +388,4 @@ func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
 			}
 		}
 	}
-	return
 }

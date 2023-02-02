@@ -3,6 +3,7 @@ package memtable
 import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/scan"
 )
 
 // da bi mogli nad oba tipa napisati funkcije pravimo interface
@@ -12,6 +13,7 @@ type MemTable interface {
 	Remove(key string)
 	Flush()
 	Print()
+	RangeScan(minKey string, maxKey string, scan *Scan)
 }
 
 //Konstruktor za memtabelu

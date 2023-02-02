@@ -3,6 +3,7 @@ package b_tree
 import (
 	"fmt"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/scan"
 	"strings"
 )
 
@@ -340,6 +341,40 @@ func (bTree *BTree) InorderTraverse(node *BTreeNode, keys *[]string, Values *[]*
 		for i := 0; i < len(node.keys); i++ {
 			*keys = append(*keys, node.keys[i])
 			*Values = append(*Values, node.Values[node.keys[i]])
+		}
+	}
+}
+
+func (bTree *BTree) RangeScan(minKey string, maxKey string,node *BTreeNode, scan *Scan) {
+	if node == nil {
+		return
+	}
+	if scan.FoundResults >= scan.SelectedPageEnd{
+		return
+	}
+	for i := 0; i < len(node.children)-1; i++ {
+		bTree.RangeScan(minKey, maxKey, node.children[i], scan)
+		if i < len(node.keys) {
+			if node.keys[i] >= minKey && node.keys[i] <= maxKey{
+				scan.FoundResults++
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					scan.Keys = append(scan.Keys, node.keys[i])
+					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				}
+			}
+		}
+	}
+	if len(node.children) > 0 {
+		bTree.RangeScan(minKey, maxKey, node.children[len(node.children)-1], scan)
+	} else {
+		for i := 0; i < len(node.keys); i++ {
+			if node.keys[i] >= minKey && node.keys[i] <= maxKey{
+				scan.FoundResults++
+				if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+					scan.Keys = append(scan.Keys, node.keys[i])
+					scan.Data = append(scan.Data, node.Values[node.keys[i]])
+				}
+			}
 		}
 	}
 }

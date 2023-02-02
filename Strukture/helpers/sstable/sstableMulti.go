@@ -8,6 +8,7 @@ import (
 	. "project/gosaomi/bloom"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/entry"
 	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/scan"
 )
@@ -190,18 +191,18 @@ func (sstable *SSTableMulti) Flush(keys []string, values []*Data) {
 
 // ------------ PRINTOVANJE ------------
 
-// func (sstable *SSTableMulti) ReadData() {
-// 	file := sstable.OpenFile("data.bin")
+func (sstable *SSTableMulti) ReadData() {
+	file := sstable.OpenFile("data.bin")
 
-// 	for {
-// 		entry := ReadEntry(file)
-// 		if entry == nil {
-// 			break
-// 		}
-// 		entry.Print()
-// 	}
-// 	file.Close()
-// }
+	for {
+		entry := ReadEntry(file)
+		if entry == nil {
+			break
+		}
+		entry.Print()
+	}
+	file.Close()
+}
 
 func (sstable *SSTableMulti) ReadIndex() {
 	file := sstable.OpenFile("index.bin")

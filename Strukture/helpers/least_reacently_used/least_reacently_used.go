@@ -27,6 +27,7 @@ type cacheMapElement struct {
 func (lru *LRUCache) Delete(key string) {
 	lru.keyList.Remove(lru.elementMap[key].el)
 	delete(lru.elementMap, key)
+	lru.Write()
 }
 
 func NewLRU() *LRUCache {

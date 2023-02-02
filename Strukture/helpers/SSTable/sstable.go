@@ -11,6 +11,7 @@ import (
 	. "project/gosaomi/cms"
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
+	. "project/gosaomi/entry"
 	. "project/gosaomi/hll"
 	. "project/gosaomi/scan"
 )
@@ -21,6 +22,7 @@ type SST interface {
 	Find(key string) (bool, *Data)
 	GoToData() (*os.File, uint64)
 	RangeScan(minKey string, maxKey string, scan *Scan)
+	ReadData()
 }
 
 type Index struct {
@@ -134,41 +136,16 @@ func ByteToData(file *os.File, Offset... uint64) (string, *Data) {
 		file.Seek(int64(Offset[0]), 0)
 	}
 
-	//prvo procitamo do kljuca da bi videli koje su  velicine kljuc i vrednost
-	bytes := make([]byte, 29)
-	_, err := file.Read(bytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//procitamo velicine kljuca i vrednosti
-	Key_size := bytes[13:21]
-	Value_size := bytes[21:]
-	timestampBytes := bytes[4:12]
-	tombstoneBytes := bytes[12:13]
-	
-	//procitamo kljuc
-	keyBytes := make([]byte, int(binary.BigEndian.Uint64(Key_size)))
-	_, err = file.Read(keyBytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//procitamo vrednost
-	Value := make([]byte, int(binary.BigEndian.Uint64(Value_size)))
-	_, err = file.Read(Value)
-	if err != nil {
-		log.Fatal(err)
-	}
+	entry := ReadEntry(file)
 
 	//Tombstone
 	tombstone := false
-	if tombstoneBytes[0] == byte(uint8(1)) {
+	if entry.Tombstone[0] == byte(uint8(1)) {
 		tombstone = true
 	}
-	timestamp := binary.BigEndian.Uint64(timestampBytes)
-	data := NewData(Value, tombstone, timestamp)
-	Key := string(keyBytes)
+	timestamp := binary.BigEndian.Uint64(entry.Timestamp)
+	data := NewData(entry.Value, tombstone, timestamp)
+	Key := string(entry.Key)
 
 	
 	return Key, data
