@@ -10,7 +10,6 @@ import (
 	. "project/gosaomi/config"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/entry"
-	. "project/gosaomi/hll"
 	. "project/gosaomi/scan"
 )
 
@@ -360,54 +359,4 @@ func ByteToBloomFilter(file *os.File) *BloomFilter {
 	}
 
 	return blm
-}
-
-func HyperLogLogToBytes(hll *HLL) []byte {
-
-	//upisujemo promenljive tipa uint32
-	bytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, hll.M)
-
-	bytesP := make([]byte, 1)
-	bytesP = append(bytesP, byte(hll.P))
-	bytes = append(bytes, bytesP...)
-
-	bytesReg := make([]byte, hll.M)
-	for b := range hll.Reg {
-		bytesReg = append(bytesReg, byte(b))
-	}
-	bytes = append(bytes, bytesReg...)
-
-	return bytes
-}
-
-func BytesToHyperLogLog(file *os.File) *HLL {
-	hll := new(HLL)
-	bytes := make([]byte, 8)
-
-	//ucitavamo podatke
-	_, err := file.Read(bytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-	hll.M = binary.BigEndian.Uint64(bytes)
-
-	bytes = make([]byte, 1)
-	_, err = file.Read(bytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-	hll.P = uint8(bytes[0])
-
-	hll.Reg = make([]uint8, hll.M)
-	for i := uint64(0); i < hll.M; i++ {
-		bytes = make([]byte, 1)
-		_, err := file.Read(bytes)
-		if err != nil {
-			log.Fatal(err)
-		}
-		hll.Reg = append(hll.Reg, bytes...)
-	}
-
-	return hll
 }
