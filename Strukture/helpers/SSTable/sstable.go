@@ -130,7 +130,7 @@ func dataToByte(Key string, data *Data) []byte {
 }
 
 // Odpakuje sa zapisa na disku u podatak
-func ByteToData(file *os.File, Offset... uint64) (string, *Data) {
+func ByteToData(file *os.File, Offset ...uint64) (string, *Data) {
 	if len(Offset) > 0 {
 		file.Seek(int64(Offset[0]), 0)
 	}
@@ -146,7 +146,6 @@ func ByteToData(file *os.File, Offset... uint64) (string, *Data) {
 	data := NewData(entry.Value, tombstone, timestamp)
 	Key := string(entry.Key)
 
-	
 	return Key, data
 }
 
@@ -162,7 +161,7 @@ func summaryToByte(summary *Summary) []byte {
 	bytesLastKeyLen := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytesLastKeyLen, uint32(lastKeyLen))
 	bytes = append(bytes, bytesLastKeyLen...)
-	bytesIntervalsNum := make([]byte,4)
+	bytesIntervalsNum := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytesIntervalsNum, uint32(intervalsNum))
 	bytes = append(bytes, bytesIntervalsNum...)
 
@@ -225,7 +224,7 @@ func byteToSummary(file *os.File) *Summary {
 
 	//CITAMO NIZ INDEKSA
 	index := new(Index)
-	for i:=0; i < int(intervalsNum); i++ {
+	for i := 0; i < int(intervalsNum); i++ {
 		index = byteToIndex(file)
 		if index == nil {
 			break
@@ -260,7 +259,7 @@ func bytesToBools(b []byte) []bool {
 }
 
 // Priprema bloom filtera za upis
-func bloomFilterToByte(blm *BloomFilter) []byte {
+func BloomFilterToByte(blm *BloomFilter) []byte {
 	//Zapisujemo konstante
 	bytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytes, uint32(blm.K))
@@ -295,7 +294,7 @@ func bloomFilterToByte(blm *BloomFilter) []byte {
 	return bytes
 }
 
-func byteToBloomFilter(file *os.File) *BloomFilter {
+func ByteToBloomFilter(file *os.File) *BloomFilter {
 	blm := new(BloomFilter)
 	bytes := make([]byte, 4)
 

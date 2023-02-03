@@ -26,7 +26,7 @@ type cacheMapElement struct {
 
 func (lru *LRUCache) Delete(key string) {
 	found, _ := lru.Get(key)
-	if found{
+	if found {
 		lru.keyList.Remove(lru.elementMap[key].el)
 		delete(lru.elementMap, key)
 		lru.Write()
@@ -164,7 +164,6 @@ func (lru *LRUCache) Set(key string, value *Data) {
 	lru.Write()
 }
 
-//
 //func main() {
 //	lru := NewLRU()
 //	lru.Set("1", NewData([]byte("ognjen"), false, uint64(time.Now().Unix())))
