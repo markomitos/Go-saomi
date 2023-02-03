@@ -61,7 +61,7 @@ func (sstable *SSTableMulti) OpenFile(filename string) *os.File {
 func (sstable *SSTableMulti) LoadFilter() {
 	//Ucitavamo bloomfilter
 	filterFile := sstable.OpenFile("filter.bin")
-	sstable.bloomFilter = byteToBloomFilter(filterFile)
+	sstable.bloomFilter = ByteToBloomFilter(filterFile)
 	filterFile.Close()
 }
 
@@ -178,7 +178,7 @@ func (sstable *SSTableMulti) Flush(keys []string, values []*Data) {
 	}
 
 	//Upis u bloomfilter fajl
-	filterFile.Write(bloomFilterToByte(sstable.bloomFilter))
+	filterFile.Write(BloomFilterToByte(sstable.bloomFilter))
 
 	//Upis u metadata fajl
 	merkleRoot := merkle.MakeMerkel(nodes)
@@ -240,7 +240,7 @@ func (sstable *SSTableMulti) ReadSummary() *Summary {
 func (sstable *SSTableMulti) ReadBloom() {
 	file := sstable.OpenFile("filter.bin")
 
-	blm := byteToBloomFilter(file)
+	blm := ByteToBloomFilter(file)
 	fmt.Println("K: ", blm.K)
 	fmt.Println("N: ", blm.N)
 	fmt.Println("M: ", blm.M)
@@ -255,7 +255,7 @@ func (sstable *SSTableMulti) ReadBloom() {
 func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 	//Ucitavamo bloomfilter
 	filterFile := sstable.OpenFile("filter.bin")
-	sstable.bloomFilter = byteToBloomFilter(filterFile)
+	sstable.bloomFilter = ByteToBloomFilter(filterFile)
 	filterFile.Close()
 
 	//Proveravamo preko BloomFiltera da li uopste treba da pretrazujemo
@@ -313,6 +313,7 @@ func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 }
 
 // ------------ DOBAVLJANJE PODATAKA ------------
+
 //Otvara fajl i postavlja pokazivac na pocetak data zone
 //vraca pokazivac na taj fajl i velicinu data zone
 func (sstable *SSTableMulti) GoToData()  (*os.File, uint64){
@@ -517,5 +518,9 @@ func (sstable *SSTableMulti) GetPosition() (uint32, uint32){
 	}
 
 	return uint32(levelNum), uint32(fileNum)
+}
 
+func (sstable *SSTableMulti) GetRange() (string, string){
+	summary := sstable.ReadSummary()
+	return summary.FirstKey, summary.LastKey
 }

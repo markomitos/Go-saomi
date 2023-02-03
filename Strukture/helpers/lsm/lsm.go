@@ -147,8 +147,7 @@ func IncreaseLsmLevel(level uint32){
 
 //Menja imena fajlova tako da krecu od 1
 //Update-a velicinu levela
-func RenameLevel(level uint32){
-	lsm := ReadLsm()
+func (lsm *Lsm) RenameLevelSizeTiered(level uint32){
 	if(lsm.LevelSizes[level-1] % 2 != 0){
 
 		err := os.Rename("files/sstable/level"+strconv.FormatUint(uint64(level), 10)+"/sstable"+strconv.FormatUint(uint64(lsm.LevelSizes[level-1]), 10),
@@ -160,7 +159,35 @@ func RenameLevel(level uint32){
 	} else {
 		lsm.LevelSizes[level-1] = 0
 	}
-	lsm.Write()
+}
+
+//Menja imena fajlova tako da krecu od 1
+func (lsm *Lsm) RenameLevelLeveled(currentLevel uint32, numOfCreatedFiles uint32, chosenIndexes[]uint32){
+
+	//Broj elemenata koji se nalaze izmedju novododatih posle kompakcije i odabranih za kompakciju
+	middle := lsm.LevelSizes[currentLevel-1] - chosenIndexes[len(chosenIndexes)-1] - numOfCreatedFiles
+
+	//Pomeramo middle skroz desno iza novododatih(preimenujemo ih)
+	renameCnt := uint32(1)
+	for i:=chosenIndexes[len(chosenIndexes)-1]+1; i <= lsm.LevelSizes[currentLevel-1]-numOfCreatedFiles; i++{
+		err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
+		"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(lsm.LevelSizes[currentLevel-1] + renameCnt), 10)) //Najkraca linija koda u Novom Sadu
+		if err != nil {
+			log.Fatal(err)
+		}
+		renameCnt++
+	}
+
+	//Pomeramo sve pocev od novododatih u levo preko onih koje smo obrisali(koji su se koristili u kompakciji)
+	for i := chosenIndexes[len(chosenIndexes)-1] + middle + 1; i <= lsm.LevelSizes[currentLevel-1]+middle; i++{
+		err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable"+strconv.FormatUint(uint64(i), 10),
+		"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i - uint32(len(chosenIndexes)) - middle), 10))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	lsm.LevelSizes[currentLevel-1] -= uint32(len(chosenIndexes))
 }
 
 //Funkcija koja generise foldere do max nivoa
@@ -184,26 +211,24 @@ func (lsm *Lsm) GenerateLevelFolders() {
 //Poziva se u mainu i pokrece izabranu kompakciju
 func RunCompact(){
 	lsm := ReadLsm()
+	config := GetConfig()
+
 	//Iteriramo po levelima
 	//Preskacemo poslednji level jer se tu ne radi kompakcija
-	for i:=uint32(1); i < lsm.MaxLevel; i++{
-		if lsm.LevelSizes[i-1] >= 2{
-			lsm.Compact(i)
-		}
-	}
-
-	//Iteriramo po levelima i preimenujemo fajlove ukoliko je potrebno
-	for i:=uint32(1); i < lsm.MaxLevel; i++{
-		RenameLevel(i)
-	}
-}
-
-func (lsm *Lsm) Compact(currentLevel uint32){
-	config := GetConfig()
 	if config.CompactionType == "size_tiered" {
-		lsm.SizeTieredCompaction(currentLevel)
+		for currentLevel:=uint32(1); currentLevel < lsm.MaxLevel; currentLevel++{
+			//Ukoliko ima bar 2 elementa u nivou pokrecemo
+			if lsm.LevelSizes[currentLevel-1] >= 2{
+				lsm.SizeTieredCompaction(currentLevel)
+			}
+		}
 	} else if config.CompactionType == "leveled" {
-		lsm.LeveledCompaction(currentLevel)
+		for currentLevel:=uint32(1); currentLevel < lsm.MaxLevel; currentLevel++{
+			//Ukoliko ima bar 1 element u nivou pokrecemo
+			if lsm.LevelSizes[currentLevel-1] >= 1{
+				lsm.LeveledCompaction(currentLevel)
+			}
+		}
 	}
 }
 
@@ -227,6 +252,7 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 		deleteSSTable(lsm.GenerateSSTableName(currentLevel, index+1))
 		
 	}
+	lsm.RenameLevelSizeTiered(currentLevel) //Preimenujemo fajlove u trenutnom nivou
 	lsm.Write()
 }
 
@@ -238,22 +264,73 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 
 	//Proveravamo da li je uopste potrebno raditi kompakciju na ovom nivou
 	if lsm.LevelSizes[currentLevel-1] > uint32(maxSSTables){
-		sstableArr := make([]SST, 0)
+		sstableArr := make([]SST, 0) //Niz sstabela koje ce se spajati
 		if currentLevel == 1 {
-			//TO DO: spajaj sve sstabele i pomeraj level gore
-			for index := uint32(1); index < lsm.LevelSizes[currentLevel-1]; index++{
-				sstableArr = append(sstableArr, NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, index)))
+
+			//Citamo prvog zbog minimalne i maksimalne vrednosti
+			firstSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, 1))
+			sstableArr = append(sstableArr, firstSSTable)
+			minKey, maxKey := firstSSTable.GetRange()
+
+			//Prolazimo kroz ceo prvi nivo (bez prvog jer je vec procitan)
+			for index := uint32(2); index < lsm.LevelSizes[currentLevel-1]; index++{
+
+				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, index))
+
+				//Obelezimo sve sstabele iz prvog nivoa
+				sstableArr = append(sstableArr, currentSSTable)
+
+				//Proveravamo range
+				min, max := currentSSTable.GetRange()
+				if min < minKey{
+					minKey = min
+				}
+				if max > maxKey{
+					maxKey = max
+				}
 			}
-			MergeSSTables(sstableArr, currentLevel)
+
+			//Cuva indekse od izabranih tabela iz narednog nivoa koje ulaze u kompakciju
+			chosenIndexes := make([]uint32, 0)
+
+			//Prolazimo kroz naredni nivo
+			for index := uint32(1); index < lsm.LevelSizes[currentLevel]; index++{
+				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel+1, index))
+
+				//Biramo samo one koji upadaju u opseg
+				firstKey, lastKey := currentSSTable.GetRange()
+				if !(lastKey < minKey || firstKey > maxKey) {
+					sstableArr = append(sstableArr,currentSSTable)
+				}
+
+				nextLevelChosen = append(nextLevelChosen, index)
+			}
+
+			//MERGE
+			numOfCreatedFiles := lsm.MergeSSTables(sstableArr, currentLevel)
+
+			//Brisemo sve fajlove iz prvog nivoa
+			for i:=uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++{
+				deleteSSTable(lsm.GenerateSSTableName(currentLevel, i))
+			}
+
+			//Brisemo sve izabrane fajlove iz drugog dela
+			for i:=0; i < len(chosenIndexes); i++{
+				deleteSSTable(lsm.GenerateSSTableName(currentLevel+1, chosenIndexes[i]))
+			}
+
+			//Rename fajlova
+			lsm.RenameLevelLeveled(currentLevel+1, numOfCreatedFiles, chosenIndexes)
+			lsm.Write()
+
 		} else {
 			//prvi slucaj je da ispod nema poklapanja
 			//drugi slucaj je da ispod ima poklapanja
 		}
-		//Ukoliko se nesto dodalo u naredni nivo proveravamo da li je i tamo potrebna kompakcija
-		lsm.LeveledCompaction(currentLevel+1)
 	}
 }
 
+//TO DO: napraviti da upisuje direktno u fajl a ne da pravi nizove
 //Spaja 2 sstabele
 func Merge2SSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	file1, data1End  := firstSStable.GoToData()
@@ -346,13 +423,14 @@ func Merge2SSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	return mergedKeys, mergedData
 }
 
-func MergeSSTables(sstables []SST, currentLevel uint32) ([]string, []*Data){
+//Vraca broj koliko je kreirano novih sstabela u narednom nivou
+func (lsm *Lsm) MergeSSTables(sstables []SST, currentLevel uint32) uint32{
 	config := GetConfig()
+	numOfCreatedFiles := uint32(0)
+
 
 	files := make([]*os.File,0) //Ovde cuvamo otvorene fajlove od svih sstabela
 	dataEnds := make([]uint64, 0) //Ovde cuvamo krajeve data zona za svaku sstabelu
-	sstableLevels := make([]uint32, 0) //Ovde cuvamo u kojem nivou se svaka sstabela nalazi
-	sstableFileNumbers := make([]uint32, 0) //Ovde cuvamo koje po redu su sstabele
 	isEndOfFiles := make([]bool, 0) //Ovde cuvamo bool vrednost da li je cela sstabela predjena
 
 	keys := make([]string, 0) //Ovde cuvamo trenutne kljuceve
@@ -362,9 +440,6 @@ func MergeSSTables(sstables []SST, currentLevel uint32) ([]string, []*Data){
 	//Identifikacija sstabela i dodavanje u niz
 	for i:=0; i < len(sstables); i++{
 		currentSSTable := sstables[i]
-		levelNum, fileNum := currentSSTable.GetPosition()
-		sstableLevels = append(sstableLevels, levelNum)
-		sstableFileNumbers = append(sstableFileNumbers, fileNum)
 		
 		//otvaramo fajl i pozicioniramo se na data zonu
 		file, dataEnd := currentSSTable.GoToData()
@@ -433,88 +508,38 @@ func MergeSSTables(sstables []SST, currentLevel uint32) ([]string, []*Data){
 		//Proveravamo da li smo napunili sstabelu
 		//Ukoliko jesmo flushujemo u visi nivo
 		if len(mergedKeys) >= int(config.MemtableSize){
-			
+			lsm.LevelSizes[currentLevel]++ //Povecavamo broj fajlova u visem nivou
+			mergedSSTable := NewSSTable(uint32(config.MemtableSize) ,lsm.GenerateSSTableName(currentLevel+1, lsm.LevelSizes[currentLevel]))
+			mergedSSTable.Flush(mergedKeys, mergedData)
+
+			//Resetujemo nizove
+			mergedKeys = make([]string, 0)
+			mergedData = make([]*Data, 0)
+
+			//Povecavamo counter
+			numOfCreatedFiles++
 		}
 	}
 
+	//Ukoliko se nije flush sam izazvao a ima jos fajlova moramo ih zapisati
+	if len(mergedKeys) > 0 {
+		lsm.LevelSizes[currentLevel]++ //Povecavamo broj fajlova u visem nivou
+		mergedSSTable := NewSSTable(uint32(config.MemtableSize) ,lsm.GenerateSSTableName(currentLevel+1, lsm.LevelSizes[currentLevel]))
+		mergedSSTable.Flush(mergedKeys, mergedData)
 
-
-	for true {
-		//Kraj prve tabele
-		if isEndOfData(file1, data1End){
-			if isEndOfData(file2, data2End){
-				break
-			}
-
-			if key1 == key2{
-				key2, data2 = ByteToData(file2)
-			}
-
-			//Prolazimo samo kroz drugu tabelu da prebacimo ostatak
-			for true{
-				mergedKeys = append(mergedKeys, key2)
-				mergedData = append(mergedData, data2)
-				if isEndOfData(file2, data2End){
-					break
-				}
-				key2, data2 = ByteToData(file2)
-			}
-			break
-		}
-
-		//Kraj druge tabele
-		if isEndOfData(file2, data2End){
-			//Ukoliko su bili jednaki moramo preskociti trenutan
-			if key1 == key2{
-				key1, data1 = ByteToData(file1)
-			}
-
-			//Prolazimo samo kroz prvu tabelu da prebacimo ostatak
-			for true{
-				mergedKeys = append(mergedKeys, key1)
-				mergedData = append(mergedData, data1)
-				if isEndOfData(file1, data1End){
-					break
-				}
-				key1, data1 = ByteToData(file1)
-			}
-			break
-			
-		}
-
-		if toRead1{
-			key1, data1 = ByteToData(file1)
-		}
-		if toRead2{
-			key2, data2 = ByteToData(file2)
-		}
-
-		if key1 == key2 {
-			if data2.Timestamp >= data1.Timestamp{
-				mergedKeys = append(mergedKeys, key2)
-				mergedData = append(mergedData, data2)
-			} else {
-				mergedKeys = append(mergedKeys, key1)
-				mergedData = append(mergedData, data1)
-			}
-			toRead1 = true
-			toRead2 = true
-		} else if(key1 < key2){
-			mergedKeys = append(mergedKeys, key1)
-			mergedData = append(mergedData, data1)
-			toRead1 = true
-			toRead2 = false
-		} else if(key2 < key1){
-			mergedKeys = append(mergedKeys, key2)
-			mergedData = append(mergedData, data2)
-			toRead1 = false
-			toRead2 = true
-		}
-
+		//Povecavamo counter
+		numOfCreatedFiles++
 	}
-	file1.Close()
-	file2.Close()
-	return mergedKeys, mergedData
+
+	//Zatvaramo sve fajlove
+	for _, file := range files{
+		err := file.Close()
+		if err != nil{
+			log.Fatal(err)
+		}
+	}
+	
+	return numOfCreatedFiles
 }
 
 //Proveravamo da li smo prosli data zonu

@@ -91,7 +91,7 @@ func (sstable *SSTableSingle) LoadFilter(){
 
 	//Ucitavamo bloomfilter
 	sstableFile.Seek(int64(filterStart),0)
-	sstable.bloomFilter = byteToBloomFilter(sstableFile)
+	sstable.bloomFilter = ByteToBloomFilter(sstableFile)
 
 	sstableFile.Close()
 }
@@ -235,7 +235,7 @@ func (sstable *SSTableSingle) Flush(keys []string, values []*Data) {
 	}
 
 	//------------ FILTER ------------
-	_, err = sstableFile.Write(bloomFilterToByte(sstable.bloomFilter))
+	_, err = sstableFile.Write(BloomFilterToByte(sstable.bloomFilter))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func (sstable *SSTableSingle) Find(Key string) (bool, *Data) {
 
 	//Ucitavamo bloomfilter
 	sstableFile.Seek(int64(filterStart),0)
-	sstable.bloomFilter = byteToBloomFilter(sstableFile)
+	sstable.bloomFilter = ByteToBloomFilter(sstableFile)
 
 	//Proveravamo preko BloomFiltera da li uopste treba da pretrazujemo
 	if !sstable.bloomFilter.IsInBloom([]byte(Key)) {
@@ -608,4 +608,23 @@ func (sstable *SSTableSingle) GetPosition() (uint32, uint32){
 
 	return uint32(levelNum), uint32(fileNum)
 
+}
+
+func (sstable *SSTableSingle) GetRange() (string, string){
+	//Otvaramo fajl i citamo header
+	sstableFile := sstable.OpenFile("sstable.bin")
+
+	dataSize,indexSize,_ := sstable.ReadHeader(sstableFile)
+
+	//Offseti na pocetke zona
+	dataStart := uint64(24)
+	indexStart := dataStart + dataSize
+	summaryStart := indexStart + indexSize
+
+
+	//Proveravamo da li je kljuc van opsega
+	sstableFile.Seek(int64(summaryStart), 0)
+	summary :=  byteToSummary(sstableFile)
+
+	return summary.FirstKey, summary.LastKey
 }
