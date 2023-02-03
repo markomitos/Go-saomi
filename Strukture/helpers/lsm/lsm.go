@@ -216,7 +216,7 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 		firstSStable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, index))
 		secondSStable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, index+1))
 
-		mergedKeys, mergedData := MergeSSTables(firstSStable, secondSStable)
+		mergedKeys, mergedData := Merge2SSTables(firstSStable, secondSStable)
 
 		lsm.LevelSizes[currentLevel]++
 		mergedSSTable := NewSSTable(size*2,lsm.GenerateSSTableName(currentLevel+1, lsm.LevelSizes[currentLevel]))
@@ -232,10 +232,30 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 
 //TO DO
 func (lsm *Lsm) LeveledCompaction(currentLevel uint32){	
+	config := GetConfig()
+	//Racuna broj sstabela koji je dozvoljen u trenutnom nivou
+	maxSSTables := math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel))
+
+	//Proveravamo da li je uopste potrebno raditi kompakciju na ovom nivou
+	if lsm.LevelSizes[currentLevel-1] > uint32(maxSSTables){
+		sstableArr := make([]SST, 0)
+		if currentLevel == 1 {
+			//TO DO: spajaj sve sstabele i pomeraj level gore
+			for index := uint32(1); index < lsm.LevelSizes[currentLevel-1]; index++{
+				sstableArr = append(sstableArr, NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, index)))
+			}
+			MergeSSTables(sstableArr, currentLevel)
+		} else {
+			//prvi slucaj je da ispod nema poklapanja
+			//drugi slucaj je da ispod ima poklapanja
+		}
+		//Ukoliko se nesto dodalo u naredni nivo proveravamo da li je i tamo potrebna kompakcija
+		lsm.LeveledCompaction(currentLevel+1)
+	}
 }
 
 //Spaja 2 sstabele
-func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
+func Merge2SSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	file1, data1End  := firstSStable.GoToData()
 	file2, data2End  := secondSStable.GoToData()
 
@@ -248,6 +268,177 @@ func MergeSSTables(firstSStable SST,secondSStable SST) ([]string, []*Data){
 	//Pomocne promenljive koje nam govore da li treba ici na sledeci element
 	toRead1 := true
 	toRead2 := true
+	for true {
+		//Kraj prve tabele
+		if isEndOfData(file1, data1End){
+			if isEndOfData(file2, data2End){
+				break
+			}
+
+			if key1 == key2{
+				key2, data2 = ByteToData(file2)
+			}
+
+			//Prolazimo samo kroz drugu tabelu da prebacimo ostatak
+			for true{
+				mergedKeys = append(mergedKeys, key2)
+				mergedData = append(mergedData, data2)
+				if isEndOfData(file2, data2End){
+					break
+				}
+				key2, data2 = ByteToData(file2)
+			}
+			break
+		}
+
+		//Kraj druge tabele
+		if isEndOfData(file2, data2End){
+			//Ukoliko su bili jednaki moramo preskociti trenutan
+			if key1 == key2{
+				key1, data1 = ByteToData(file1)
+			}
+
+			//Prolazimo samo kroz prvu tabelu da prebacimo ostatak
+			for true{
+				mergedKeys = append(mergedKeys, key1)
+				mergedData = append(mergedData, data1)
+				if isEndOfData(file1, data1End){
+					break
+				}
+				key1, data1 = ByteToData(file1)
+			}
+			break
+			
+		}
+
+		if toRead1{
+			key1, data1 = ByteToData(file1)
+		}
+		if toRead2{
+			key2, data2 = ByteToData(file2)
+		}
+
+		if key1 == key2 {
+			if data2.Timestamp >= data1.Timestamp{
+				mergedKeys = append(mergedKeys, key2)
+				mergedData = append(mergedData, data2)
+			} else {
+				mergedKeys = append(mergedKeys, key1)
+				mergedData = append(mergedData, data1)
+			}
+			toRead1 = true
+			toRead2 = true
+		} else if(key1 < key2){
+			mergedKeys = append(mergedKeys, key1)
+			mergedData = append(mergedData, data1)
+			toRead1 = true
+			toRead2 = false
+		} else if(key2 < key1){
+			mergedKeys = append(mergedKeys, key2)
+			mergedData = append(mergedData, data2)
+			toRead1 = false
+			toRead2 = true
+		}
+
+	}
+	file1.Close()
+	file2.Close()
+	return mergedKeys, mergedData
+}
+
+func MergeSSTables(sstables []SST, currentLevel uint32) ([]string, []*Data){
+	config := GetConfig()
+
+	files := make([]*os.File,0) //Ovde cuvamo otvorene fajlove od svih sstabela
+	dataEnds := make([]uint64, 0) //Ovde cuvamo krajeve data zona za svaku sstabelu
+	sstableLevels := make([]uint32, 0) //Ovde cuvamo u kojem nivou se svaka sstabela nalazi
+	sstableFileNumbers := make([]uint32, 0) //Ovde cuvamo koje po redu su sstabele
+	isEndOfFiles := make([]bool, 0) //Ovde cuvamo bool vrednost da li je cela sstabela predjena
+
+	keys := make([]string, 0) //Ovde cuvamo trenutne kljuceve
+	data := make([]*Data, 0) //Ovde cuvamo trenutan podatak
+	toRead := make([]bool, 0) //Flag da li je potrebno citanje sledeceg elementa
+
+	//Identifikacija sstabela i dodavanje u niz
+	for i:=0; i < len(sstables); i++{
+		currentSSTable := sstables[i]
+		levelNum, fileNum := currentSSTable.GetPosition()
+		sstableLevels = append(sstableLevels, levelNum)
+		sstableFileNumbers = append(sstableFileNumbers, fileNum)
+		
+		//otvaramo fajl i pozicioniramo se na data zonu
+		file, dataEnd := currentSSTable.GoToData()
+		files = append(files, file)
+		dataEnds = append(dataEnds, dataEnd)
+
+		isEndOfFiles = append(isEndOfFiles, false) //na pocetku inicijalizujemo na false
+
+		toRead = append(toRead, true) //Uvek prve elemente citamo
+	}
+
+	mergedKeys := make([]string,0)
+	mergedData := make([]*Data,0)
+
+	for true {
+		tempKeys := make([]string, 0)//Cuvamo kljuceve koje uporedjujemo (necemo cuvati kljuceve od fajlova koji su predjeni)
+		tempData := make([]*Data, 0)//Cuvamo podatke koje uporedjujemo
+
+		//Prolazimo kroz sve fajlove
+		for i:=0; i < len(files); i++{
+			if !isEndOfData(files[i], dataEnds[i]){
+				if toRead[i]{
+					keys[i], data[i] = ByteToData(files[i])
+				}
+				tempKeys = append(tempKeys, keys[i])
+				tempData = append(tempData, data[i])
+			} else {
+				isEndOfFiles[i] = true
+			}
+		}
+
+		//Svi su ubaceni i kraj
+		if len(tempKeys) < 1{
+			break
+		}
+
+		//Trazimo koji je element sa najmanjom vrednoscu
+		minKey := tempKeys[0]
+		for i:=1; i<len(tempKeys); i++{
+			if tempKeys[i] < minKey{
+				minKey = tempKeys[i]
+			}
+		}
+
+		//Trazimo koji element treba da procitamo po najvecem timestampu
+		newestData := new(Data)
+		newestData.Timestamp = 0
+		for i:=1; i<len(tempData); i++{
+			if keys[i] == minKey{
+				if tempData[i].Timestamp > newestData.Timestamp{
+					newestData = tempData[i]
+				}
+			}
+		}
+
+		//Obelezavamo sve koji su jednaki izabranom kljucu da se citaju
+		//Ostali zadrzavaju vrednost
+		for i:=0; i < len(toRead); i++{
+			toRead[i] = keys[i] == minKey //Ovo neces videti u Novom Sadu :)
+		}
+
+		//Dodajemo u red za upis u novu sstabelu
+		mergedKeys = append(mergedKeys, minKey)
+		mergedData = append(mergedData, newestData)
+
+		//Proveravamo da li smo napunili sstabelu
+		//Ukoliko jesmo flushujemo u visi nivo
+		if len(mergedKeys) >= int(config.MemtableSize){
+			
+		}
+	}
+
+
+
 	for true {
 		//Kraj prve tabele
 		if isEndOfData(file1, data1End){

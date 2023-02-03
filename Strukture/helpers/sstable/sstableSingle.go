@@ -13,6 +13,7 @@ import (
 	. "project/gosaomi/entry"
 	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/scan"
+	"strconv"
 	"strings"
 )
 
@@ -587,4 +588,24 @@ func (sstable *SSTableSingle) ReadData() {
 		entry.Print()
 	}
 	file.Close()
+}
+
+//Vraca koji je nivo i koja je po redu sstabela u LSM stablu
+func (sstable *SSTableSingle) GetPosition() (uint32, uint32){
+	arr := strings.Split(sstable.directory, "/")
+	levelString := strings.TrimLeft(arr[0], "level")
+	fileString := strings.TrimLeft(arr[1], "sstable")
+
+	levelNum, err :=  strconv.Atoi(levelString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	fileNum, err :=  strconv.Atoi(fileString)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return uint32(levelNum), uint32(fileNum)
+
 }

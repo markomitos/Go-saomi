@@ -12,3 +12,4 @@ token_rate: 10
 lsm_max_level: 7
 compaction_type: "size_tiered"
 lru_cap: 5
+leveled_compaction_multiplier: 10

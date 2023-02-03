@@ -23,6 +23,7 @@ const (
 	default_TokenBucketRate = 15
 	default_CompactionType = "size_tiered"
 	default_LruCap = 10
+	default_LeveledCompactionMultiplier = 10
 )
 
 
@@ -41,6 +42,7 @@ type Config struct {
 	TokenBucketCap         int     `yaml:"token_cap"`
 	TokenBucketRate        int     `yaml:"token_rate"`
 	CompactionType         string  `yaml:"compaction_type"`
+	LeveledCompactionMultiplier uint `yaml:"leveled_compaction_multiplier"`
 	LruCap                 int     `yaml:"lru_cap"`
 }
 
@@ -60,6 +62,7 @@ func initializeConfig() *Config {
 	c.TokenBucketCap = default_TokenBucketCap
 	c.TokenBucketRate = default_TokenBucketRate
 	c.CompactionType = default_CompactionType
+	c.LeveledCompactionMultiplier = default_LeveledCompactionMultiplier
 	c.LruCap = default_LruCap
 	return c
 }
@@ -130,6 +133,10 @@ func GetConfig() *Config {
 
 	if c.CompactionType != "size_tiered" && c.CompactionType != "leveled" {
 		c.CompactionType = default_CompactionType
+	}
+
+	if c.LeveledCompactionMultiplier < 2 {
+		c.LeveledCompactionMultiplier = default_LeveledCompactionMultiplier
 	}
 
 	if c.LruCap == 0 {

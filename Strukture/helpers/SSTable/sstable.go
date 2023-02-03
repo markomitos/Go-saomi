@@ -24,6 +24,7 @@ type SST interface {
 	ListScan(prefix string, scan *Scan)
 	GoToData() (*os.File, uint64)
 	ReadData()
+	GetPosition() (uint32, uint32) //Vraca koji je nivo i koja je po redu sstabela u LSM stablu
 }
 
 type Index struct {
