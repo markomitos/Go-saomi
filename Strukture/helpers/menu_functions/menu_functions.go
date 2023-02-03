@@ -2,7 +2,6 @@ package menu_functions
 
 import (
 	"fmt"
-	// . "project/gosaomi/cms"
 	. "project/gosaomi/dataType"
 	. "project/gosaomi/entry"
 	. "project/gosaomi/least_reacently_used"
@@ -163,5 +162,5 @@ func SimHashCompare(key1 string, key2 string, mem MemTable, lru *LRUCache, bucke
 	}
 
 	return Compare(data1.Value, data2.Value)
-
 }
+

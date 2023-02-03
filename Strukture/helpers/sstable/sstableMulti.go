@@ -12,6 +12,7 @@ import (
 	. "project/gosaomi/entry"
 	merkle "project/gosaomi/merkle"
 	. "project/gosaomi/scan"
+	"strconv"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ type SSTableMulti struct {
 
 // ---------------- Konstruktor i inicijalizacija ----------------
 
-// size - ocekivani broj elemenata (velinica memtabele)
+// size - ocekivani broj elemenata (velicina memtabele)
 // directory - naziv direktorijuma
 func NewSSTableMulti(size uint32, directory string) *SSTableMulti {
 	config := GetConfig()
@@ -496,5 +497,25 @@ func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
 	if err != nil{
 		log.Fatal(err)
 	}
+
+}
+
+//Vraca koji je nivo i koja je po redu sstabela u LSM stablu
+func (sstable *SSTableMulti) GetPosition() (uint32, uint32){
+	arr := strings.Split(sstable.directory, "/")
+	levelString := strings.TrimLeft(arr[0], "level")
+	fileString := strings.TrimLeft(arr[1], "sstable")
+
+	levelNum, err :=  strconv.Atoi(levelString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	fileNum, err :=  strconv.Atoi(fileString)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return uint32(levelNum), uint32(fileNum)
 
 }
