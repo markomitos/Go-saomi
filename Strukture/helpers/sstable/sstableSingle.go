@@ -626,5 +626,10 @@ func (sstable *SSTableSingle) GetRange() (string, string){
 	sstableFile.Seek(int64(summaryStart), 0)
 	summary :=  byteToSummary(sstableFile)
 
+	err := sstableFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return summary.FirstKey, summary.LastKey
 }

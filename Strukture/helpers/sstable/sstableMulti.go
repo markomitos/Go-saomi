@@ -232,7 +232,10 @@ func (sstable *SSTableMulti) ReadSummary() *Summary {
 	// 	fmt.Println(summary.Intervals[i])
 	// }
 
-	file.Close()
+	err := file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return summary
 }
