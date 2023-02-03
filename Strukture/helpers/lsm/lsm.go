@@ -163,31 +163,84 @@ func (lsm *Lsm) RenameLevelSizeTiered(level uint32){
 
 //Menja imena fajlova tako da krecu od 1
 func (lsm *Lsm) RenameLevelLeveled(currentLevel uint32, numOfCreatedFiles uint32, chosenIndexes[]uint32){
+	config := GetConfig()
 
-	//Broj elemenata koji se nalaze izmedju novododatih posle kompakcije i odabranih za kompakciju
-	middle := lsm.LevelSizes[currentLevel-1] - chosenIndexes[len(chosenIndexes)-1] - numOfCreatedFiles
+	//Ovaj slucaj gledamo ako postoje preklapanja sa narednim nivoom
+	if len(chosenIndexes) > 0{
+		//Broj elemenata koji se nalaze izmedju novododatih posle kompakcije i odabranih za kompakciju
+		middle := lsm.LevelSizes[currentLevel-1] - chosenIndexes[len(chosenIndexes)-1] - numOfCreatedFiles
 
-	//Pomeramo middle skroz desno iza novododatih(preimenujemo ih)
-	renameCnt := uint32(1)
-	for i:=chosenIndexes[len(chosenIndexes)-1]+1; i <= lsm.LevelSizes[currentLevel-1]-numOfCreatedFiles; i++{
-		err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
-		"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(lsm.LevelSizes[currentLevel-1] + renameCnt), 10)) //Najkraca linija koda u Novom Sadu
-		if err != nil {
-			log.Fatal(err)
+		//Pomeramo middle skroz desno iza novododatih(preimenujemo ih)
+		renameCnt := uint32(1)
+		for i:=chosenIndexes[len(chosenIndexes)-1]+1; i <= lsm.LevelSizes[currentLevel-1]-numOfCreatedFiles; i++{
+			err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
+			"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(lsm.LevelSizes[currentLevel-1] + renameCnt), 10)) //Najkraca linija koda u Novom Sadu
+			if err != nil {
+				log.Fatal(err)
+			}
+			renameCnt++
 		}
-		renameCnt++
-	}
 
-	//Pomeramo sve pocev od novododatih u levo preko onih koje smo obrisali(koji su se koristili u kompakciji)
-	for i := chosenIndexes[len(chosenIndexes)-1] + middle + 1; i <= lsm.LevelSizes[currentLevel-1]+middle; i++{
-		err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable"+strconv.FormatUint(uint64(i), 10),
-		"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i - uint32(len(chosenIndexes)) - middle), 10))
-		if err != nil {
-			log.Fatal(err)
+		//Pomeramo sve pocev od novododatih u levo preko onih koje smo obrisali(koji su se koristili u kompakciji)
+		for i := chosenIndexes[len(chosenIndexes)-1] + middle + 1; i <= lsm.LevelSizes[currentLevel-1]+middle; i++{
+			err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable"+strconv.FormatUint(uint64(i), 10),
+			"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i - uint32(len(chosenIndexes)) - middle), 10))
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
-	}
 
-	lsm.LevelSizes[currentLevel-1] -= uint32(len(chosenIndexes))
+		lsm.LevelSizes[currentLevel-1] -= uint32(len(chosenIndexes))
+
+	} else { //Ukoliko nema preklapanja
+		indexOfFirstCreated := lsm.LevelSizes[currentLevel-1] - numOfCreatedFiles + 1
+		lastCreatedSSTable := NewSSTable(uint32(config.MemtableSize), lsm.GenerateSSTableName(currentLevel, lsm.LevelSizes[currentLevel-1]))
+
+		_, maxCreated := lastCreatedSSTable.GetRange()
+
+
+		swapIndex := uint32(0) //Predstavlja indeks gde treba da zamenimo tabele
+
+		//Poredimo opseg ostalih sstabela sa dodatim tabelama
+		//da bi znali na kojoj poziciji treba da stavimo dodate sstabele da bi sve bile sortirane
+		for i := uint32(1); i < indexOfFirstCreated; i++{
+			currentSSTable := NewSSTable(uint32(config.MemtableSize), lsm.GenerateSSTableName(currentLevel, i))
+			minCurrent, _ := currentSSTable.GetRange()
+
+			if maxCreated < minCurrent{
+				swapIndex = i
+				break
+			}
+		}
+
+		//Ovo znaci da nije nasao nigde mesto tj. treba da stoji na kraju i nista ne pomeramo
+		if swapIndex == 0 {
+			return
+		}
+
+		middleCounter := uint32(1) //Broji koliko tabela ima izmedju prvog dodatog i mesta gde treba da ubacimo
+
+		//Pomeramo na kraj sve tabele koje se nalaze izmedju
+		for i := swapIndex; i < indexOfFirstCreated; i++{
+			err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
+			"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(lsm.LevelSizes[currentLevel-1] + middleCounter), 10)) 
+			if err != nil {
+				log.Fatal(err)
+			}
+			middleCounter++
+		}
+
+		//Pomeramo sve u levo na trazeno mesto pocev od prvog dodatog tako da sada sve bude sortirano
+		for i := indexOfFirstCreated; i <= lsm.LevelSizes[currentLevel-1]+middleCounter; i++{
+			err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
+			"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i - middleCounter), 10)) 
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+	}
+	
 }
 
 //Funkcija koja generise foldere do max nivoa
@@ -256,14 +309,18 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 	lsm.Write()
 }
 
-//TO DO
+//Leveled kompakcija
+//Iz prvog nivoa sve podizemo na visi nivo.
+//Svaki naredni put proveravamo koliko njih treba da podignemo kako bi uslov za taj nivo bio ispunjen.
+//Ukoliko ima preklapanja sa narednim nivoom svi zajedno tabele se spajaju i ubacuju na odgovarajuce mesto.
+//Ukoliko nema preklapanja trazimo gde treba da se ubace nove tabele i tu ih smestamo.
 func (lsm *Lsm) LeveledCompaction(currentLevel uint32){	
 	config := GetConfig()
 	//Racuna broj sstabela koji je dozvoljen u trenutnom nivou
-	maxSSTables := math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel))
+	maxSSTables := uint32(math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel) - 1))
 
 	//Proveravamo da li je uopste potrebno raditi kompakciju na ovom nivou
-	if lsm.LevelSizes[currentLevel-1] > uint32(maxSSTables){
+	if lsm.LevelSizes[currentLevel-1] > maxSSTables{
 		sstableArr := make([]SST, 0) //Niz sstabela koje ce se spajati
 		if currentLevel == 1 {
 
@@ -272,7 +329,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 			sstableArr = append(sstableArr, firstSSTable)
 			minKey, maxKey := firstSSTable.GetRange()
 
-			//Prolazimo kroz ceo prvi nivo (bez prvog jer je vec procitan)
+			//Prolazimo kroz ceo prvi nivo (bez prve tabele jer je vec procitana)
 			for index := uint32(2); index < lsm.LevelSizes[currentLevel-1]; index++{
 
 				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, index))
@@ -303,7 +360,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 					sstableArr = append(sstableArr,currentSSTable)
 				}
 
-				nextLevelChosen = append(nextLevelChosen, index)
+				chosenIndexes = append(chosenIndexes, index)
 			}
 
 			//MERGE
@@ -324,8 +381,64 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 			lsm.Write()
 
 		} else {
-			//prvi slucaj je da ispod nema poklapanja
-			//drugi slucaj je da ispod ima poklapanja
+			sstablesToCompactNum := lsm.LevelSizes[currentLevel-1]-maxSSTables
+
+			//Citamo prvog zbog minimalne i maksimalne vrednosti
+			firstSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, 1))
+			sstableArr = append(sstableArr, firstSSTable)
+			minKey, maxKey := firstSSTable.GetRange()
+
+			//Prolazimo kroz trenutan nivo (bez prve tabele jer je vec procitana)
+			//dodajemo samo toliko tabela koliko je potrebno da bi isli ispod ogranicenja nivoa
+			for index := uint32(2); index <= sstablesToCompactNum; index++{
+
+				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, index))
+
+				//Obelezimo sve sstabele iz prvog nivoa
+				sstableArr = append(sstableArr, currentSSTable)
+
+				//Proveravamo range
+				min, max := currentSSTable.GetRange()
+				if min < minKey{
+					minKey = min
+				}
+				if max > maxKey{
+					maxKey = max
+				}
+			}
+
+			//Cuva indekse od izabranih tabela iz narednog nivoa koje ulaze u kompakciju
+			chosenIndexes := make([]uint32, 0)
+
+			//Prolazimo kroz naredni nivo
+			for index := uint32(1); index < lsm.LevelSizes[currentLevel]; index++{
+				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel+1, index))
+
+				//Biramo samo one koji upadaju u opseg
+				firstKey, lastKey := currentSSTable.GetRange()
+				if !(lastKey < minKey || firstKey > maxKey) {
+					sstableArr = append(sstableArr,currentSSTable)
+				}
+
+				chosenIndexes = append(chosenIndexes, index)
+			}
+
+			//MERGE
+			numOfCreatedFiles := lsm.MergeSSTables(sstableArr, currentLevel)
+
+			//Brisemo odabrane fajlove iz prvog nivoa
+			for i:=uint32(1); i <= sstablesToCompactNum; i++{
+				deleteSSTable(lsm.GenerateSSTableName(currentLevel, i))
+			}
+
+			//Brisemo sve izabrane fajlove iz drugog dela
+			for i:=0; i < len(chosenIndexes); i++{
+				deleteSSTable(lsm.GenerateSSTableName(currentLevel+1, chosenIndexes[i]))
+			}
+
+			//Rename fajlova
+			lsm.RenameLevelLeveled(currentLevel+1, numOfCreatedFiles, chosenIndexes)
+			lsm.Write()
 		}
 	}
 }
