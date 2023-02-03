@@ -331,7 +331,10 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 func (lsm *Lsm) LeveledCompaction(currentLevel uint32){	
 	config := GetConfig()
 	//Racuna broj sstabela koji je dozvoljen u trenutnom nivou
-	maxSSTables := uint32(math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel) - 1))
+	maxSSTables := uint32(0) //U prvoj ne sme da ostane nijedna sstabela
+	if currentLevel > 1 {
+		maxSSTables = uint32(math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel) - 1))
+	}
 
 	//Proveravamo da li je uopste potrebno raditi kompakciju na ovom nivou
 	if lsm.LevelSizes[currentLevel-1] > maxSSTables{
