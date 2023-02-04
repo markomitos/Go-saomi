@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"os"
 	. "project/gosaomi/cms"
-	. "project/gosaomi/dataType"
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/memtable"
 	. "project/gosaomi/token_bucket"
-	"time"
 )
 
-func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (string, *CountMinSketch) {
+func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *CountMinSketch) {
 	var input string
 	cms := new(CountMinSketch)
 	for true{
@@ -22,6 +20,7 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (str
 		found, _ := GET(input, mem, lru, bucket)
 		if found == true {
 			fmt.Println("Takav kljuc vec postoji u bazi podataka. Molimo vas unesite drugi.")
+			return true, input, nil
 		}else {
 			var epsilon float64
 			var delta float64
@@ -37,7 +36,7 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (str
 		}
 	}
 
-	return input, cms //TODO Isrpavi
+	return false, input, cms
 }
 //dobavlja cms iz baze podataka
 func CountMinSketchGET(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *CountMinSketch) {
@@ -72,7 +71,7 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 	var val []byte
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da dodate: ")
+	fmt.Print("Unesite podatak koji zelite da proverite: ")
 	fmt.Scanln(&val)
 
 	freq := CheckFrequencyInCms(cms, val)
@@ -82,12 +81,8 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 }
 
 func CountMinSketchPUT(key string, cms *CountMinSketch, mem MemTable, bucket *TokenBucket, tombstone bool) {
-	data := new(Data)
 	bytesCms := CountMinSkechToBytes(cms)
-	data.Value = bytesCms
-	data.Timestamp = uint64(time.Now().Unix())
-	data.Tombstone = tombstone
-	PUT(key, data, mem, bucket)
+	PUT(key, bytesCms, mem, bucket)
 }
 
 
@@ -125,8 +120,15 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 
 		switch input {
 		case "1":
-			activeKey, activeCMS = CreateCountMinSketch(mem, lru, bucket)
-			userkey = activeKey[14:]
+			found, tempKey, tempCms := CreateCountMinSketch(mem, lru, bucket)
+			if found {
+				fmt.Println("Vec postoji CountMinSKetch sa datim kljucem")
+			} else {
+				activeCMS = tempCms
+				activeKey = tempKey
+				userkey = activeKey[14:]
+			}
+			
 		case "2":
 			found, key, tempCMS := CountMinSketchGET(mem, lru, bucket)
 			if found {

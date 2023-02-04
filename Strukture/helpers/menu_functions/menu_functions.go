@@ -16,12 +16,41 @@ import (
 
 //TO DO: funkcija koja ce se pozivati iz menija
 
+func GetKeyInput() (string) {
+	var key string
+	fmt.Print("Unesite kljuc: ")
+	fmt.Scanln(&key)
+	return key
+}
+
+func GetValueInput() ([]byte) {
+	var elem []byte
+	fmt.Print("Unesite vrednost: ")
+	fmt.Scanln(&elem)
+	return elem
+}
+
+func GetUserInput() (string, []byte){
+
+	key := GetKeyInput()
+
+	elem := GetValueInput()
+
+	return key, elem
+}
+
 // ------------ WRITEPATH ------------
 // Upisuje podatak u bazu i vraca da li je operacija bila uspesna
-func PUT(key string, data *Data, memtable MemTable, bucket *TokenBucket) bool {
+func PUT(key string, value []byte, memtable MemTable, bucket *TokenBucket) bool {
 	if !bucket.Take() {
 		return false
 	} 
+
+	//PRAVIMO DATA ZA UPIS
+	data:= new(Data)
+	data.Value = value
+	data.Timestamp = uint64(time.Now().Unix()) //upisuje se trenutno vreme
+	data.Tombstone = false
 
 	//UPISUJEMO U WAL
 	wal := NewWriteAheadLog("files/wal")

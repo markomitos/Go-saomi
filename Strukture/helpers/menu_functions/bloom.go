@@ -3,105 +3,110 @@ package menu_functions
 import (
 	"fmt"
 	"os"
-	. "project/gosaomi/SSTable"
 	. "project/gosaomi/bloom"
-	. "project/gosaomi/dataType"
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/memtable"
 	. "project/gosaomi/token_bucket"
-	"time"
 )
 
-func CreateBloomFileter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (string, *BloomFilter) {
+func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *BloomFilter) {
 	var input string
-	cms := new(BloomFilter)
-	for true {
+	blm := new(BloomFilter)
+
+	for true{
 
 		fmt.Print("Unesite kljuc: ")
 		fmt.Scanln(&input)
 		input = "BloomFilter" + input
 		found, _ := GET(input, mem, lru, bucket)
 		if found == true {
-			fmt.Println("Takav kljuc vec postoji u bazi podataka. Molimo vas unesite drugi.")
-		} else {
-			var epsilon float64
-			var delta float64
+			fmt.Println("Takav kljuc vec postoji u bazi podataka.")
+			return true, input, nil
+		}else{
+			var expectedNumOfElem uint32
+			var falsePositiveRate float64
 
 			//TODO: dodaj validacije
-			fmt.Print("Unesite preciznost (epsilon): ")
-			fmt.Scanln(&epsilon)
-			fmt.Print("Unesite sigurnost tacnosti (delta): ")
-			fmt.Scanln(&delta)
-			cms = NewBloomFilter(epsilon, delta)
+			fmt.Print("ocekivani broj elemenata: ")
+			fmt.Scanln(&expectedNumOfElem)
+			fmt.Print("Unesite sigurnost tacnosti: ")
+			fmt.Scanln(&falsePositiveRate)
+			blm = NewBloomFilter(expectedNumOfElem, falsePositiveRate)
 
 			break
 		}
 	}
-
-	return input, cms
+	fmt.Println()
+	return false, input, blm
 }
 
-// dobavlja cms iz baze podataka
-func BloomFileterGET(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *BloomFilter) {
+func GetBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *BloomFilter) {
 	var key string
-	cms := new(BloomFilter)
+	blm := new(BloomFilter)
 
 	//unos
 	fmt.Print("Unesite kljuc: ")
 	fmt.Scanln(&key)
-	key = "CountMinSketch" + key
-
+	key = "BloomFilter" + key
+	
 	found, data := GET(key, mem, lru, bucket)
 	if found {
 		cmsBytes := data.Value
-		cms = ByteToBloomFilter(cmsBytes)
-		return true, key, cms
+		blm = MenuByteToBloomFilter(cmsBytes)
+		return true, key, blm
 	}
-	return false, key, cms
-
+	return false, key, blm
 }
 
-func BloomFileterAddElement(cms *BloomFilter) {
+func BloomFilterAddElement(blm *BloomFilter) {
 	var val []byte
 
 	//unos
 	fmt.Print("Unesite podatak koji zelite da dodate: ")
 	fmt.Scanln(&val)
-	AddToCms(cms, val)
+	blm.AddToBloom(val)
 }
 
-func BloomFileterCheckFrequency(cms *BloomFilter) {
+func BloomFilterFindElem(blm *BloomFilter) {
 	var val []byte
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da dodate: ")
+	fmt.Print("Unesite podatak koji zelite da proverite: ")
 	fmt.Scanln(&val)
 
-	freq := CheckFrequencyInCms(cms, val)
+	found := blm.IsInBloom(val)
 
-	fmt.Print("Broj ponavljanja podatka iznosi: ")
-	fmt.Println(freq)
+	if found {
+		fmt.Println("Podatak se nalazi u BloomFilteru")
+	}
+	
+	if !found {
+		fmt.Println("Podatak se ne nalazi u BloomFilteru")
+	}
 }
 
-func BloomFileterPUT(key string, cms *BloomFilter, mem MemTable, bucket *TokenBucket, tombstone bool) {
-	data := new(Data)
-	bytesCms := CountMinSkechToBytes(cms)
-	data.Value = bytesCms
-	data.Timestamp = uint64(time.Now().Unix())
-	data.Tombstone = tombstone
-	PUT(key, data, mem, bucket)
+func BloomFilterPUT(key string, blm *BloomFilter, mem MemTable, bucket *TokenBucket) {
+	bytesBLM := MenuBloomFilterToByte(blm)
+	PUT(key, bytesBLM, mem, bucket)
 }
 
-func BloomFileterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
-	activeCMS := new(BloomFilter)
-	var activeKey string
+func BloomFilterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
+	activeBLM := new(BloomFilter)
+	var activeKey string //kljuc Bloom filtera
+	var userkey string   //kljuc koji je korisnik uneo i koji se ispisuje korisniku
+	userkey = ""
 	for true {
-		fmt.Println("1 - Kreiraj Bloom Fileter")
-		fmt.Println("2 - Dobavi Bloom Fileter iz baze podataka")
+
+		fmt.Println("=======================================")
+		fmt.Print("Kljuc aktivnog Bloom filtera: ")
+		fmt.Println(userkey)
+		fmt.Println()
+		fmt.Println("1 - Kreiraj bloom filter")
+		fmt.Println("2 - Dobavi bloom filter iz baze podataka")
 		fmt.Println("3 - Dodaj element")
-		fmt.Println("4 - Proveri broj ponavljanja")
-		fmt.Println("5 - Upisi Bloom Fileter u bazu podataka")
-		fmt.Println("6 - Obrisi Bloom Fileter iz baze podataka")
+		fmt.Println("4 - Pronadji element")
+		fmt.Println("5 - Upisi bloom filter u bazu podataka")
+		fmt.Println("6 - Obrisi bloom filter iz baze podataka")
 		fmt.Println("X - Izlaz iz programa")
 		fmt.Println("=======================================")
 		fmt.Print("Izaberite opciju: ")
@@ -118,23 +123,50 @@ func BloomFileterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 
 		switch input {
 		case "1":
-			activeKey, activeCMS = CreateBloomFileter(mem, lru, bucket)
-		case "2":
-			found, key, tempCMS := BloomFileterGET(mem, lru, bucket)
+			found, tempKey, tempBLM := CreateBloomFilter(mem, lru, bucket)
 			if found {
-				activeCMS = tempCMS
-				activeKey = key
+				fmt.Println("Vec postoji BloomFilter sa datim kljucem")
 			} else {
-				fmt.Println("Ne postoji CountMinSKetch sa datim kljucem")
+				activeBLM = tempBLM
+				activeKey = tempKey
+				userkey = activeKey[11:]
+			}
+
+		case "2":
+			found, key, tempBLM := GetBloomFilter(mem, lru, bucket)
+			if found {
+				activeBLM = tempBLM
+				activeKey = key
+				userkey = activeKey[11:]
+			} else {
+				fmt.Println("Ne postoji BloomFilter sa datim kljucem")
 			}
 		case "3":
-			CountMinSketchAddElement(activeCMS)
+
+			if len(activeKey) != 0 {
+				BloomFilterAddElement(activeBLM)
+			} else {
+				fmt.Println("Nije izabran aktivni BloomFilter")
+			}
+
 		case "4":
-			CountMinSketchCheckFrequency(activeCMS)
+			if len(activeKey) != 0 {
+				BloomFilterFindElem(activeBLM)
+			} else {
+				fmt.Println("Nije izabran aktivni BloomFilter")
+			}
 		case "5":
-			CountMinSketchPUT(activeKey, activeCMS, mem, bucket, false)
+			if len(activeKey) != 0 {
+				BloomFilterPUT(activeKey, activeBLM, mem, bucket)
+			} else {
+				fmt.Println("Nije izabran aktivni BloomFilter")
+			}
 		case "6":
-			CountMinSketchPUT(activeKey, activeCMS, mem, bucket, true)
+			if len(activeKey) != 0 {
+				DELETE(activeKey, mem, lru, bucket)
+			} else {
+				fmt.Println("Nije izabran aktivni BloomFilter")
+			}
 		case "x":
 			fmt.Println("Vidimo se sledeci put!")
 			os.Exit(0)
@@ -145,5 +177,4 @@ func BloomFileterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 			fmt.Println("Neispravan unos. Molimo vas probajte opet.")
 		}
 	}
-
 }

@@ -42,12 +42,17 @@ func RandomString(length int) string {
 //--------------------------
 
 
-func menu() {
+func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	fmt.Println("1 - PUT")
 	fmt.Println("2 - GET")
 	fmt.Println("3 - DELETE")
 	fmt.Println("4 - LIST")
 	fmt.Println("5 - RANGE SCAN")
+	fmt.Println("6 - KOMPAKCIJA")
+	fmt.Println("7 - CountMinSketch menu")
+	fmt.Println("8 - BloomFilter menu")
+	fmt.Println("9 - HyperLogLog menu")
+	fmt.Println("10 - SimHash menu")
 	fmt.Println("X - Izlaz iz programa")
 	fmt.Println("=======================================")
 	fmt.Print("Izaberite opciju: ")
@@ -64,14 +69,27 @@ func menu() {
 
 	switch input {
 	case "1":
-		fmt.Println("1")
+		key, val := GetUserInput()
+		PUT(key, val, mem, bucket)
 	case "2":
-		fmt.Println("2")
+		key:= GetKeyInput()
+		GET(key, mem, lru, bucket)
 	case "3":
-		fmt.Println("3")
+		key:= GetKeyInput()
+		DELETE(key, mem, lru, bucket)
 	case "4":
 		fmt.Println("4")
 	case "5":
+		fmt.Println("5")
+	case "6":
+		fmt.Println("5")
+	case "7":
+		CountMinSKetchMenu(mem, lru, bucket)
+	case "8":
+		BloomFilterMenu(mem, lru, bucket)
+	case "9":
+		fmt.Println("5")
+	case "10":
 		fmt.Println("5")
 	case "x":
 		fmt.Println("Vidimo se sledeci put!")
@@ -182,7 +200,7 @@ func main() {
 	data.Value = []byte("aligator")
 	data.Timestamp = uint64(time.Now().Unix())
 	data.Tombstone = false
-	PUT("581",data,memtable,bucket)
+	// PUT("581",data,memtable,bucket)
 
 	start := time.Now()
 	found, keys, dataArr := RANGE_SCAN("1", "99999", 7 , 1, memtable)
@@ -201,7 +219,7 @@ func main() {
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
 	for true {
-		menu()
+		menu(memtable, lru, bucket)
 	}
 
 	// keys := make([]string, 0)
