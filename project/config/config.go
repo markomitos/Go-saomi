@@ -11,9 +11,9 @@ import (
 const (
 	default_WalBufferCapacity = 10
 	default_WalWaterMark = 20
-	default_MemtableSize = 10
+	default_MemtableSize = 20
 	default_MemtableStructure = "b_tree"
-	default_SStableInterval = 128
+	default_SStableInterval = 10
 	default_BloomFalsePositiveRate = 2.0
 	default_BTreeNumOfChildren = 3
 	default_SkiplistMaxHeight = 10

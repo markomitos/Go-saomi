@@ -13,6 +13,7 @@ import (
 	. "project/keyvalue/structures/scan"
 	. "project/keyvalue/structures/sstable"
 	"strconv"
+	"time"
 )
 
 //Ovde organizujemo fajlove pri upisu
@@ -767,7 +768,7 @@ func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
 			}
 		} else { //Ukoliko je leveled kompakcija u visim nivoima svi podaci ce biti sortirani tako da treba citati sstabele redom
 			for i := uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++ {
-				currentSSTable := NewSSTable(size, lsm.GenerateSSTableName(currentLevel, i))
+				currentSSTable := NewSSTable(uint32(config.MemtableSize), lsm.GenerateSSTableName(currentLevel, i))
 				currentSSTable.RangeScan(minKey, maxKey, scan)
 				if scan.FoundResults >= scan.SelectedPageEnd {
 					return
@@ -794,7 +795,7 @@ func (lsm *Lsm) ListScan(prefix string, scan *Scan) {
 			}
 		} else { //Ukoliko je leveled kompakcija u visim nivoima svi podaci ce biti sortirani tako da treba citati sstabele redom
 			for i := uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++ {
-				currentSSTable := NewSSTable(size, lsm.GenerateSSTableName(currentLevel, i))
+				currentSSTable := NewSSTable(uint32(config.MemtableSize), lsm.GenerateSSTableName(currentLevel, i))
 				currentSSTable.ListScan(prefix, scan)
 				if scan.FoundResults >= scan.SelectedPageEnd {
 					return
@@ -814,6 +815,7 @@ func (lsm *Lsm) Print() {
 			for i := uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++ {
 				fmt.Println("--------------------- SSTABLE - ", i, " ---------------------")
 				NewSSTable(uint32(config.MemtableSize), lsm.GenerateSSTableName(currentLevel, i)).ReadData()
+				time.Sleep(time.Millisecond * 10) //Da ne bi preforsirali sistem u printovanju, u suprotnom se moze desiti da zabode
 			}
 		}
 	}

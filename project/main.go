@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"os"
 
+	// "strconv"
+
 	"time"
 
 	// "time"
@@ -21,8 +23,7 @@ import (
 )
 
 //RANDOM STRING GENERATOR
-const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const charset = "abcdefghijklmnopqrstuvwxyz"
 
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
@@ -119,8 +120,8 @@ func main() {
 
 
 
-	// for i:=250; i > 100; i--{
-	// 	value := []byte("slon")
+	// for i:=1023; i > 0; i--{
+	// 	value := []byte(RandomString(5))
 	// 	key := strconv.FormatInt(int64(i),10)
 		
 	// 	if !PUT(key,value,memtable,bucket){
@@ -149,7 +150,7 @@ func main() {
 	// RunCompact()
 
 	start := time.Now()
-	found, keys, dataArr := RANGE_SCAN("1", "99999", 7 , 3, memtable)
+	found, keys, dataArr := LIST_SCAN("1", 15 , 1, memtable)
 	fmt.Printf("main, execution time %s\n", time.Since(start))
 
 	if !found {
@@ -162,7 +163,7 @@ func main() {
 		}
 	}
 
-	// lsm.ReadLsm().Print()
+	// ReadLsm().Print()
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
 	for true {
