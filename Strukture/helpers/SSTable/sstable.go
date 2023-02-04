@@ -14,7 +14,7 @@ import (
 )
 
 type SST interface {
-	makeFiles() []*os.File
+	MakeFiles() []*os.File
 	Flush(keys []string, values []*Data)
 	Find(key string) (bool, *Data)
 	RangeScan(minKey string, maxKey string, scan *Scan)

@@ -11,7 +11,6 @@ import (
 
 	// . "project/gosaomi/dataType"
 	. "project/gosaomi/least_reacently_used"
-	"project/gosaomi/lsm"
 	. "project/gosaomi/lsm"
 	. "project/gosaomi/memtable"
 
@@ -119,14 +118,12 @@ func main() {
 	fmt.Println(bucket)
 
 
-	// for i:=586; i > 0; i--{
-	// 	data := new(Data)
-	// 	data.Value = []byte("majmun")
-	// 	data.Timestamp = uint64(time.Now().Unix())
-	// 	data.Tombstone = false
+
+	// for i:=250; i > 100; i--{
+	// 	value := []byte("slon")
 	// 	key := strconv.FormatInt(int64(i),10)
 		
-	// 	if !PUT(key,data,memtable,bucket){
+	// 	if !PUT(key,value,memtable,bucket){
 	// 		fmt.Println("MAJMUNE")
 	// 	} else {
 	// 		fmt.Println("PROSLO")
@@ -135,85 +132,37 @@ func main() {
 	// }
 	
 	// start := time.Now()
-	// found, data := GET("2", memtable, lru, bucket)
+	// found, data := GET("100", memtable, lru, bucket)
 	// fmt.Printf("main, execution time %s\n", time.Since(start))
 	// if found {
-	// 	fmt.Println("2")
+	// 	fmt.Println("100")
 	// 	data.Print()
 	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
-	// }
-
-	// start = time.Now()
-	// found, data = GET("2", memtable, lru, bucket)
-	// fmt.Printf("main, execution time %s\n", time.Since(start))
-	// if found {
-	// 	fmt.Println("2")
-	// 	data.Print()
-	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
-	// }
-
-	// DELETE("2", memtable, lru, bucket)
-
-	// start = time.Now()
-	// found, data = GET("2", memtable, lru, bucket)
-	// fmt.Printf("main, execution time %s\n", time.Since(start))
-	// if found {
-	// 	fmt.Println("2")
-	// 	data.Print()
-	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem 2")
-	// }
-
-
-	// found, data = GET("20", memtable, lru, bucket)
-	// if found {
-	// 	fmt.Println("20")
-	// 	data.Print()
-	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem 20")
-	// }
-
-	// found, data = GET("3", memtable, lru, bucket)
-	// if found {
-	// 	fmt.Println("3")
-	// 	data.Print()
-	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem 3")
-	// }
-
-	// found, data = GET("abc", memtable, lru, bucket)
-	// if found {
-	// 	fmt.Println("abc")
-	// 	data.Print()
-	// } else {
-	// 	fmt.Println("Ne postoji podatak sa kljucem abc")
+	// 	fmt.Println("Ne postoji podatak sa kljucem 100")
 	// }
 
 	// DELETE("560", memtable, lru, bucket)
+	// value := []byte("aligator")
+	// PUT("581",value,memtable,bucket)
 
-	// data := new(Data)
-	// data.Value = []byte("aligator")
-	// data.Timestamp = uint64(time.Now().Unix())
-	// data.Tombstone = false
-	// PUT("581",data,memtable,bucket)
 
-	// start := time.Now()
-	// found, keys, dataArr := RANGE_SCAN("1", "99999", 7 , 1, memtable)
-	// fmt.Printf("main, execution time %s\n", time.Since(start))
+	// RunCompact()
 
-	// if !found {
-	// 	fmt.Println("Nema pronadjenih rezultata")
-	// } else {
-	// 	for i:=0; i < len(keys); i++{
-	// 		fmt.Println(keys[i])
-	// 		dataArr[i].Print()
-	// 		fmt.Println("********************************")
-	// 	}
-	// }
+	start := time.Now()
+	found, keys, dataArr := RANGE_SCAN("1", "99999", 7 , 3, memtable)
+	fmt.Printf("main, execution time %s\n", time.Since(start))
 
-	lsm.ReadLsm().Print()
+	if !found {
+		fmt.Println("Nema pronadjenih rezultata")
+	} else {
+		for i:=0; i < len(keys); i++{
+			fmt.Println(keys[i])
+			dataArr[i].Print()
+			fmt.Println("********************************")
+		}
+	}
+
+	// lsm.ReadLsm().Print()
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
 	for true {

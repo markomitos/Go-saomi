@@ -218,12 +218,12 @@ func (lsm *Lsm) RenameLevelLeveled(currentLevel uint32, numOfCreatedFiles uint32
 			return
 		}
 
-		middleCounter := uint32(1) //Broji koliko tabela ima izmedju prvog dodatog i mesta gde treba da ubacimo
+		middleCounter := uint32(0) //Broji koliko tabela ima izmedju prvog dodatog i mesta gde treba da ubacimo
 
 		//Pomeramo na kraj sve tabele koje se nalaze izmedju
 		for i := swapIndex; i < indexOfFirstCreated; i++{
 			err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
-			"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(lsm.LevelSizes[currentLevel-1] + middleCounter), 10)) 
+			"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(lsm.LevelSizes[currentLevel-1] + middleCounter+1), 10)) 
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -299,6 +299,10 @@ func RunCompact(){
 	}
 }
 
+
+//Size_tiered komapkcije
+//spaja po 2 sstabele i prebacuje u naredni nivo
+//ovo radi lancano do poslednjeg nivoa
 func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 	size := getSSTableSize(currentLevel)
 
@@ -375,9 +379,9 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 				firstKey, lastKey := currentSSTable.GetRange()
 				if !(lastKey < minKey || firstKey > maxKey) {
 					sstableArr = append(sstableArr,currentSSTable)
+					chosenIndexes = append(chosenIndexes, index)
 				}
-
-				chosenIndexes = append(chosenIndexes, index)
+				
 			}
 
 			//MERGE
@@ -436,9 +440,9 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 				firstKey, lastKey := currentSSTable.GetRange()
 				if !(lastKey < minKey || firstKey > maxKey) {
 					sstableArr = append(sstableArr,currentSSTable)
+					chosenIndexes = append(chosenIndexes, index)
 				}
-
-				chosenIndexes = append(chosenIndexes, index)
+			
 			}
 
 			//MERGE
@@ -706,15 +710,26 @@ func getSSTableSize(currentLevel uint32) uint32{
 
 //Trazi kljuc unutar svih sstabela
 func (lsm *Lsm) Find(key string) (bool, *Data){
+	config := GetConfig()
 	//iteriramo po nivoima
 	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
 		size := getSSTableSize(currentLevel)
 		//iteriramo po sstabelama kako su dodavane(od najveceg indeksa, noviji ce se prvi citati)
-		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
-			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
-			found, data := currentSSTable.Find(key)
-			if found {
-				return found, data
+		if currentLevel == 1 || config.CompactionType == "size_tiered"{
+			for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
+				currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+				found, data := currentSSTable.Find(key)
+				if found {
+					return found, data
+				}
+			}
+		} else { //Ukoliko je leveled kompakcija u visim nivoima svi podaci ce biti sortirani tako da treba citati sstabele redom
+			for i:=uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++{
+				currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+				found, data := currentSSTable.Find(key)
+				if found {
+					return found, data
+				}
 			}
 		}
 	}
@@ -726,15 +741,27 @@ func (lsm *Lsm) Find(key string) (bool, *Data){
 
 //iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
 func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
+	config := GetConfig()
+
 	//iteriramo po nivoima
 	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
 		size := getSSTableSize(currentLevel)
 		//iteriramo po sstabelama kako su dodavane(od najveceg indeksa, noviji ce se prvi citati)
-		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
-			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
-			currentSSTable.RangeScan(minKey,maxKey,scan)
-			if scan.FoundResults >= scan.SelectedPageEnd{
-				return
+		if currentLevel == 1 || config.CompactionType == "size_tiered"{
+			for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
+				currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+				currentSSTable.RangeScan(minKey,maxKey,scan)
+				if scan.FoundResults >= scan.SelectedPageEnd{
+					return
+				}
+			}
+		} else { //Ukoliko je leveled kompakcija u visim nivoima svi podaci ce biti sortirani tako da treba citati sstabele redom
+			for i:=uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++{
+				currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+				currentSSTable.RangeScan(minKey,maxKey,scan)
+				if scan.FoundResults >= scan.SelectedPageEnd{
+					return
+				}
 			}
 		}
 	}
@@ -742,15 +769,26 @@ func (lsm *Lsm) RangeScan(minKey string, maxKey string, scan *Scan) {
 
 //iterira po svim sstabelama i prekida ako je napunio trazenu stranicu
 func (lsm *Lsm) ListScan(prefix string, scan *Scan) {
+	config := GetConfig()
 	//iteriramo po nivoima
 	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
 		size := getSSTableSize(currentLevel)
 		//iteriramo po sstabelama kako su dodavane(od najveceg indeksa, noviji ce se prvi citati)
-		for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
-			currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
-			currentSSTable.ListScan(prefix,scan)
-			if scan.FoundResults >= scan.SelectedPageEnd{
-				return
+		if currentLevel == 1 || config.CompactionType == "size_tiered"{
+			for i:=lsm.LevelSizes[currentLevel-1]; i > 0; i--{
+				currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+				currentSSTable.ListScan(prefix,scan)
+				if scan.FoundResults >= scan.SelectedPageEnd{
+					return
+				}
+			}
+		} else { //Ukoliko je leveled kompakcija u visim nivoima svi podaci ce biti sortirani tako da treba citati sstabele redom
+			for i:=uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++{
+				currentSSTable := NewSSTable(size,lsm.GenerateSSTableName(currentLevel, i))
+				currentSSTable.ListScan(prefix,scan)
+				if scan.FoundResults >= scan.SelectedPageEnd{
+					return
+				}
 			}
 		}
 	}

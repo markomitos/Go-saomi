@@ -66,7 +66,7 @@ func (sstable *SSTableMulti) LoadFilter() {
 }
 
 // Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
-func (sstable *SSTableMulti) makeFiles() []*os.File {
+func (sstable *SSTableMulti) MakeFiles() []*os.File {
 	//kreiramo novi direktorijum
 	_, err := os.Stat("files/sstable/" + sstable.directory)
 	if os.IsNotExist(err) {
@@ -110,7 +110,7 @@ func (sstable *SSTableMulti) makeFiles() []*os.File {
 	}
 
 	files := make([]*os.File, 0)
-	files = append(files,summary, index, data, filter, metadata)
+	files = append(files,data, index, summary, filter, metadata)
 	return files
 }
 
@@ -118,8 +118,8 @@ func (sstable *SSTableMulti) makeFiles() []*os.File {
 // Bloomfilter
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTableMulti) Flush(keys []string, values []*Data) {
-	files := sstable.makeFiles()
-	summaryFile, indexFile, dataFile, filterFile, metadataFile := files[0],files[1],files[2],files[3],files[4]
+	files := sstable.MakeFiles()
+	dataFile, indexFile, summaryFile, filterFile, metadataFile := files[0],files[1],files[2],files[3],files[4]
 	summary := new(Summary)
 	summary.FirstKey = keys[0]
 	summary.LastKey = keys[len(keys)-1]

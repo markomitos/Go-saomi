@@ -1,8 +1,8 @@
 wal_buffer_capacity: 10
 wal_water_mark: 20
-memtable_size: 20
+memtable_size: 5
 memtable_structure: "skiplist"
-sstable_interval: 10
+sstable_interval: 2
 bloom_falsepositive_rate: 2.0
 btree_num_of_children: 3
 skiplist_max_height: 10
