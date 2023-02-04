@@ -2,6 +2,7 @@ package lsm
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -189,7 +190,6 @@ func (lsm *Lsm) RenameLevelLeveled(currentLevel uint32, numOfCreatedFiles uint32
 				log.Fatal(err)
 			}
 		}
-
 		lsm.LevelSizes[currentLevel-1] -= uint32(len(chosenIndexes))
 
 	} else { //Ukoliko nema preklapanja
@@ -241,6 +241,20 @@ func (lsm *Lsm) RenameLevelLeveled(currentLevel uint32, numOfCreatedFiles uint32
 
 	}
 	
+}
+
+//Preostale fajlove nakon kompakcije preimenuje da pocinju od 1
+func (lsm *Lsm) UpdateCurrentLevelNames(currentLevel uint32, numOfCompacted uint32){
+
+	//Pomeramo sve u levo na pocetak
+	for i := numOfCompacted+1; i <= lsm.LevelSizes[currentLevel-1]; i++{
+		err := os.Rename("files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i), 10),
+		"files/sstable/level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(i - numOfCompacted), 10)) 
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	lsm.LevelSizes[currentLevel-1] -= numOfCompacted
 }
 
 //Funkcija koja generise foldere do max nivoa
@@ -317,7 +331,10 @@ func (lsm *Lsm) SizeTieredCompaction(currentLevel uint32){
 func (lsm *Lsm) LeveledCompaction(currentLevel uint32){	
 	config := GetConfig()
 	//Racuna broj sstabela koji je dozvoljen u trenutnom nivou
-	maxSSTables := uint32(math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel) - 1))
+	maxSSTables := uint32(0) //U prvoj ne sme da ostane nijedna sstabela
+	if currentLevel > 1 {
+		maxSSTables = uint32(math.Pow(float64(config.LeveledCompactionMultiplier), float64(currentLevel) - 1))
+	}
 
 	//Proveravamo da li je uopste potrebno raditi kompakciju na ovom nivou
 	if lsm.LevelSizes[currentLevel-1] > maxSSTables{
@@ -330,7 +347,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 			minKey, maxKey := firstSSTable.GetRange()
 
 			//Prolazimo kroz ceo prvi nivo (bez prve tabele jer je vec procitana)
-			for index := uint32(2); index < lsm.LevelSizes[currentLevel-1]; index++{
+			for index := uint32(2); index <= lsm.LevelSizes[currentLevel-1]; index++{
 
 				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, index))
 
@@ -351,7 +368,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 			chosenIndexes := make([]uint32, 0)
 
 			//Prolazimo kroz naredni nivo
-			for index := uint32(1); index < lsm.LevelSizes[currentLevel]; index++{
+			for index := uint32(1); index <= lsm.LevelSizes[currentLevel]; index++{
 				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel+1, index))
 
 				//Biramo samo one koji upadaju u opseg
@@ -378,6 +395,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 
 			//Rename fajlova
 			lsm.RenameLevelLeveled(currentLevel+1, numOfCreatedFiles, chosenIndexes)
+			lsm.LevelSizes[0] = 0 //Posto smo sve prebacili u naredni nivo
 			lsm.Write()
 
 		} else {
@@ -411,7 +429,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 			chosenIndexes := make([]uint32, 0)
 
 			//Prolazimo kroz naredni nivo
-			for index := uint32(1); index < lsm.LevelSizes[currentLevel]; index++{
+			for index := uint32(1); index <= lsm.LevelSizes[currentLevel]; index++{
 				currentSSTable :=  NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel+1, index))
 
 				//Biramo samo one koji upadaju u opseg
@@ -438,6 +456,7 @@ func (lsm *Lsm) LeveledCompaction(currentLevel uint32){
 
 			//Rename fajlova
 			lsm.RenameLevelLeveled(currentLevel+1, numOfCreatedFiles, chosenIndexes)
+			lsm.UpdateCurrentLevelNames(currentLevel, sstablesToCompactNum) //Menja imena od preostalih fajlova u trenutnom nivou
 			lsm.Write()
 		}
 	}
@@ -546,8 +565,8 @@ func (lsm *Lsm) MergeSSTables(sstables []SST, currentLevel uint32) uint32{
 	dataEnds := make([]uint64, 0) //Ovde cuvamo krajeve data zona za svaku sstabelu
 	isEndOfFiles := make([]bool, 0) //Ovde cuvamo bool vrednost da li je cela sstabela predjena
 
-	keys := make([]string, 0) //Ovde cuvamo trenutne kljuceve
-	data := make([]*Data, 0) //Ovde cuvamo trenutan podatak
+	keys := make([]string, len(sstables)) //Ovde cuvamo trenutne kljuceve
+	data := make([]*Data, len(sstables)) //Ovde cuvamo trenutan podatak
 	toRead := make([]bool, 0) //Flag da li je potrebno citanje sledeceg elementa
 
 	//Identifikacija sstabela i dodavanje u niz
@@ -600,8 +619,8 @@ func (lsm *Lsm) MergeSSTables(sstables []SST, currentLevel uint32) uint32{
 		//Trazimo koji element treba da procitamo po najvecem timestampu
 		newestData := new(Data)
 		newestData.Timestamp = 0
-		for i:=1; i<len(tempData); i++{
-			if keys[i] == minKey{
+		for i:=0; i<len(tempData); i++{
+			if tempKeys[i] == minKey{
 				if tempData[i].Timestamp > newestData.Timestamp{
 					newestData = tempData[i]
 				}
@@ -732,6 +751,21 @@ func (lsm *Lsm) ListScan(prefix string, scan *Scan) {
 			currentSSTable.ListScan(prefix,scan)
 			if scan.FoundResults >= scan.SelectedPageEnd{
 				return
+			}
+		}
+	}
+}
+
+// ---------- PRINT IZ MEMORIJE -----------
+
+func (lsm *Lsm) Print(){
+	config := GetConfig()
+	for currentLevel:=uint32(1); currentLevel <= lsm.MaxLevel; currentLevel++{
+		if lsm.LevelSizes[currentLevel-1] > 0{
+			fmt.Println("--------------------- LEVEL ", currentLevel, " ---------------------")
+			for i:= uint32(1); i <= lsm.LevelSizes[currentLevel-1]; i++{
+				fmt.Println("--------------------- SSTABLE - ", i, " ---------------------")
+				NewSSTable(uint32(config.MemtableSize),lsm.GenerateSSTableName(currentLevel, i)).ReadData()
 			}
 		}
 	}

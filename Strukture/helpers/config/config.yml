@@ -10,6 +10,6 @@ sstable_file_config: "single"
 token_cap: 20
 token_rate: 10
 lsm_max_level: 7
-compaction_type: "size_tiered"
+compaction_type: "leveled"
 lru_cap: 5
-leveled_compaction_multiplier: 10
+leveled_compaction_multiplier: 3
