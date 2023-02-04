@@ -29,14 +29,14 @@ func Hash(data string) string {
 	h := fnv.New32a()
 	h.Write([]byte(data))
 	num := h.Sum32()
-	fmt.Println(num)
+	// fmt.Println(num)
 
 	//Dodajemo nule na pocetak da se dopune 32 bita
 	str := fmt.Sprintf("%b", num)
 	for len(str) < 32 {
 		str = "0" + str
 	}
-	fmt.Println(str)
+	// fmt.Println(str)
 	return str
 }
 
@@ -54,7 +54,7 @@ func NewHLL(precision uint8) (*HLL, error) {
 
 func (hll *HLL) AddToHLL(elem string) {
 	hashString := Hash(elem)
-	fmt.Println(hashString)
+	// fmt.Println(hashString)
 	bucketString := hashString[:hll.P]
 	bucket, err := strconv.ParseInt(bucketString, 2, 64)
 	if err != nil {
@@ -113,12 +113,12 @@ func HyperLogLogToBytes(hll *HLL) []byte {
 	bytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(bytes, hll.M)
 
-	bytesP := make([]byte, 1)
+	bytesP := make([]byte, 0)
 	bytesP = append(bytesP, byte(hll.P))
 	bytes = append(bytes, bytesP...)
 
-	bytesReg := make([]byte, hll.M)
-	for b:= range hll.Reg {
+	bytesReg := make([]byte, 0)
+	for _, b:= range hll.Reg {
 		bytesReg = append(bytesReg, byte(b))
 	}
 	bytes = append(bytes, bytesReg...)
@@ -145,7 +145,7 @@ func BytesToHyperLogLog(HllBytes []byte) *HLL {
 	}
 	hll.P = uint8(bytes[0])
 
-	hll.Reg = make([]uint8, hll.M)
+	hll.Reg = make([]uint8, 0)
 	for i:= uint64(0); i < hll.M; i++ {
 		bytes = make([]byte, 1)
 		_, err := reader.Read(bytes)

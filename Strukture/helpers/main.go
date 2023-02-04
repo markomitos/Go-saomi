@@ -5,13 +5,11 @@ import (
 	"math/rand"
 	"os"
 
-	"strconv"
-
 	"time"
 
 	// "time"
 
-	. "project/gosaomi/dataType"
+	// . "project/gosaomi/dataType"
 	. "project/gosaomi/least_reacently_used"
 	"project/gosaomi/lsm"
 	. "project/gosaomi/lsm"
@@ -68,7 +66,6 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Println("Prazan unos.  Molimo vas probajte opet.")
 		return
 	}
-
 	switch input {
 	case "1":
 		key, val := GetUserInput()
@@ -90,7 +87,7 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	case "8":
 		BloomFilterMenu(mem, lru, bucket)
 	case "9":
-		fmt.Println("5")
+		HyperLogLogMenu(mem, lru, bucket)
 	case "10":
 		fmt.Println("5")
 	case "x":
@@ -122,20 +119,20 @@ func main() {
 	fmt.Println(bucket)
 
 
-	for i:=586; i > 0; i--{
-		data := new(Data)
-		data.Value = []byte("majmun")
-		data.Timestamp = uint64(time.Now().Unix())
-		data.Tombstone = false
-		key := strconv.FormatInt(int64(i),10)
+	// for i:=586; i > 0; i--{
+	// 	data := new(Data)
+	// 	data.Value = []byte("majmun")
+	// 	data.Timestamp = uint64(time.Now().Unix())
+	// 	data.Tombstone = false
+	// 	key := strconv.FormatInt(int64(i),10)
 		
-		if !PUT(key,data,memtable,bucket){
-			fmt.Println("MAJMUNE")
-		} else {
-			fmt.Println("PROSLO")
-		}
-		time.Sleep(time.Millisecond * 100)
-	}
+	// 	if !PUT(key,data,memtable,bucket){
+	// 		fmt.Println("MAJMUNE")
+	// 	} else {
+	// 		fmt.Println("PROSLO")
+	// 	}
+	// 	time.Sleep(time.Millisecond * 100)
+	// }
 	
 	// start := time.Now()
 	// found, data := GET("2", memtable, lru, bucket)
@@ -196,11 +193,11 @@ func main() {
 
 	// DELETE("560", memtable, lru, bucket)
 
-	data := new(Data)
-	data.Value = []byte("aligator")
-	data.Timestamp = uint64(time.Now().Unix())
-	data.Tombstone = false
-	PUT("581",data,memtable,bucket)
+	// data := new(Data)
+	// data.Value = []byte("aligator")
+	// data.Timestamp = uint64(time.Now().Unix())
+	// data.Tombstone = false
+	// PUT("581",data,memtable,bucket)
 
 	// start := time.Now()
 	// found, keys, dataArr := RANGE_SCAN("1", "99999", 7 , 1, memtable)

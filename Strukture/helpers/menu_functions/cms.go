@@ -2,7 +2,6 @@ package menu_functions
 
 import (
 	"fmt"
-	"os"
 	. "project/gosaomi/cms"
 	. "project/gosaomi/least_reacently_used"
 	. "project/gosaomi/memtable"
@@ -11,19 +10,45 @@ import (
 
 func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *CountMinSketch) {
 	var input string
+	var epsilon float64
+	var delta float64
 	cms := new(CountMinSketch)
 	for true{
 
 		fmt.Print("Unesite kljuc: ")
 		fmt.Scanln(&input)
 		input = "CountMinSketch" + input
-		found, _ := GET(input, mem, lru, bucket)
+		found, data := GET(input, mem, lru, bucket)
 		if found == true {
-			fmt.Println("Takav kljuc vec postoji u bazi podataka. Molimo vas unesite drugi.")
+			var choice string
+
+			for true {
+
+				fmt.Println("Takav kljuc vec postoji u bazi podataka. Da li zelite da:")
+				fmt.Println("1. Dobavite ovaj CountMinSketch iz baze podataka")
+				fmt.Println("2. Napravite novi CountMinSketch pod ovim kljucem")
+				fmt.Print("Unesite 1 ili 2: ")
+				fmt.Scanln(&choice)
+
+				if choice == "1" {
+					cms = BytesToCountMinSketch(data.Value)
+					return false, input, cms
+
+				}else if choice == "2"{
+
+					fmt.Print("Unesite preciznost (epsilon): ")
+					fmt.Scanln(&epsilon)
+					fmt.Print("Unesite sigurnost tacnosti (delta): ")
+					fmt.Scanln(&delta)
+
+					cms = NewCountMinSketch(epsilon, delta)
+					return false, input, cms
+				} else{
+					fmt.Println("Molimo vas unesite 1 ili 2")
+				}
+			}
 			return true, input, nil
 		}else {
-			var epsilon float64
-			var delta float64
 
 			//TODO: dodaj validacije
 			fmt.Print("Unesite preciznost (epsilon): ")
@@ -80,9 +105,13 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 	fmt.Println(freq)
 }
 
-func CountMinSketchPUT(key string, cms *CountMinSketch, mem MemTable, bucket *TokenBucket, tombstone bool) {
+func CountMinSketchPUT(key string, cms *CountMinSketch, mem MemTable, bucket *TokenBucket) {
 	bytesCms := CountMinSkechToBytes(cms)
 	PUT(key, bytesCms, mem, bucket)
+}
+
+func CountMinSketchDELETE(key string, mem MemTable, lru *LRUCache, bucket *TokenBucket) {
+	DELETE(key, mem, lru, bucket)
 }
 
 
@@ -104,7 +133,7 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Println("4 - Proveri broj ponavljanja")
 		fmt.Println("5 - Upisi CountMinSketch u bazu podataka")
 		fmt.Println("6 - Obrisi CountMinSketch iz baze podataka")
-		fmt.Println("X - Izlaz iz programa")
+		fmt.Println("X - Povratak na glavni meni")
 		fmt.Println("=======================================")
 		fmt.Print("Izaberite opciju: ")
 
@@ -127,6 +156,7 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 				activeCMS = tempCms
 				activeKey = tempKey
 				userkey = activeKey[14:]
+				fmt.Println("Uspesno kreiranje")
 			}
 			
 		case "2":
@@ -135,6 +165,7 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 				activeCMS = tempCMS
 				activeKey = key
 				userkey = activeKey[14:]
+				fmt.Println("Uspesno dobavljanje")
 			} else {
 				fmt.Println("Ne postoji CountMinSKetch sa datim kljucem")
 			}
@@ -142,6 +173,7 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 
 			if len(activeKey) != 0 {
 				CountMinSketchAddElement(activeCMS)
+				fmt.Println("Uspesno dodavanje")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}
@@ -149,27 +181,28 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		case "4":
 			if len(activeKey) != 0 {
 				CountMinSketchCheckFrequency(activeCMS)
+				fmt.Println("Operacija uspesna")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}
 		case "5":
 			if len(activeKey) != 0 {
-				CountMinSketchPUT(activeKey, activeCMS, mem, bucket, false)
+				CountMinSketchPUT(activeKey, activeCMS, mem, bucket)
+				fmt.Println("Uspesan upis")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}
 		case "6":
 			if len(activeKey) != 0 {
-				CountMinSketchPUT(activeKey, activeCMS, mem, bucket, true)
+				CountMinSketchDELETE(activeKey, mem, lru, bucket)
+				fmt.Println("Uspesno brisanje")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}
 		case "x":
-			fmt.Println("Vidimo se sledeci put!")
-			os.Exit(0)
+			return
 		case "X":
-			fmt.Println("Vidimo se sledeci put!")
-			os.Exit(0)
+			return
 		default:
 			fmt.Println("Neispravan unos. Molimo vas probajte opet.")
 		}

@@ -23,18 +23,11 @@ func main() {
 	hllA.AddToHLL("monke")
 	// fmt.Println(hll.reg)
 	hllA.AddToHLL("banan")
-	// fmt.Println(hll.reg)
-	hllA.AddToHLL("ap45ple")
-	// fmt.Println(hll.reg)
-	hllA.AddToHLL("ora78nge")
-	// fmt.Println(hll.reg)
-	hllA.AddToHLL("cucum1245ber")
-	// fmt.Println(hll.reg)
-	hllA.AddToHLL("2778")
-	hllA.AddToHLL("48049894811984")
-	hllA.AddToHLL("7/91*/")
-	hllA.AddToHLL("71967678/")
 
 	fmt.Println(hllA.Estimate())
+
+	bytes := HyperLogLogToBytes(hllA)
+	hllB := BytesToHyperLogLog(bytes)
+	fmt.Println(hllB.Estimate())
 
 }
