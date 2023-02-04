@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -31,7 +32,6 @@ func ReadFile(fileName string) []*Node {
 		fmt.Println(err)
 		return nil
 	}
-	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		string_data := scanner.Text()
@@ -43,6 +43,10 @@ func ReadFile(fileName string) []*Node {
 		fmt.Println(err)
 	}
 
+	err = file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nodes
 }
 func WriteFile(file *os.File, rootNode *Node) {
@@ -58,7 +62,10 @@ func WriteFile(file *os.File, rootNode *Node) {
 	}
 
 	// Flush the buffer to the file
-	writer.Flush()
+	err = writer.Flush()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func MakeMerkel(nodes []*Node) *MerkleRoot {

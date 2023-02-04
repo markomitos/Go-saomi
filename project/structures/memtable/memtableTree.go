@@ -1,6 +1,7 @@
 package memtable
 
 import (
+	"log"
 	. "project/keyvalue/config"
 	. "project/keyvalue/structures/b_tree"
 	. "project/keyvalue/structures/dataType"
@@ -30,7 +31,7 @@ func (m *MemTableTree) Print() {
 	m.btree.PrintBTree()
 }
 
-func (m *MemTableTree) Find(key string) (bool, *Data){
+func (m *MemTableTree) Find(key string) (bool, *Data) {
 	found, node := m.btree.FindNode(key)
 	if !found {
 		return false, nil
@@ -56,7 +57,10 @@ func (m *MemTableTree) Flush() {
 	IncreaseLsmLevel(1)
 
 	//WAL -> kreiramo novi segment(log)
-	NewWriteAheadLog("files/wal").NewWALFile().Close()
+	err := NewWriteAheadLog("files/wal").NewWALFile().Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (m *MemTableTree) Put(key string, data *Data) {
@@ -70,21 +74,21 @@ func (m *MemTableTree) Put(key string, data *Data) {
 func (m *MemTableTree) Remove(key string) {
 	//Ukoliko nije nasao trazeni kljuc u Memtable
 	//Dodaje ga kao novi element sa tombstone=true
-	if !m.btree.Remove(key){
-		data:= new(Data)
+	if !m.btree.Remove(key) {
+		data := new(Data)
 		data.Timestamp = uint64(time.Now().Unix())
 		data.Tombstone = true
 		data.Value = make([]byte, 0)
-		m.Put(key,data)
+		m.Put(key, data)
 	}
 }
 
-//Trazi podatke ciji kljucevi spadaju u dati opseg
-func (m *MemTableTree) RangeScan(minKey string, maxKey string, scan *Scan){
+// Trazi podatke ciji kljucevi spadaju u dati opseg
+func (m *MemTableTree) RangeScan(minKey string, maxKey string, scan *Scan) {
 	m.btree.RangeScan(minKey, maxKey, m.btree.Root, scan)
 }
 
-//Trazi podatke ciji kljucevi imaju dati prefix
-func (m *MemTableTree) ListScan(prefix string, scan *Scan){
+// Trazi podatke ciji kljucevi imaju dati prefix
+func (m *MemTableTree) ListScan(prefix string, scan *Scan) {
 	m.btree.ListScan(prefix, m.btree.Root, scan)
 }

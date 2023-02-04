@@ -22,7 +22,7 @@ type SST interface {
 	GoToData() (*os.File, uint64)
 	ReadData()
 	GetPosition() (uint32, uint32) //Vraca koji je nivo i koja je po redu sstabela u LSM stablu
-	GetRange() (string, string) //Vraca range iz summaryja
+	GetRange() (string, string)    //Vraca range iz summaryja
 }
 
 type Index struct {
@@ -65,7 +65,10 @@ func indexToByte(index *Index) []byte {
 // odpakuje niz bajtova u indeks
 func byteToIndex(file *os.File, Offset ...uint64) *Index {
 	if len(Offset) > 0 {
-		file.Seek(int64(Offset[0]), 0)
+		_, err := file.Seek(int64(Offset[0]), 0)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	bytes := make([]byte, 12) //pravimo mesta za Offset(8) i keysize(4)
 	_, err := file.Read(bytes)
@@ -133,7 +136,10 @@ func dataToByte(Key string, data *Data) []byte {
 // Odpakuje sa zapisa na disku u podatak
 func ByteToData(file *os.File, Offset ...uint64) (string, *Data) {
 	if len(Offset) > 0 {
-		file.Seek(int64(Offset[0]), 0)
+		_, err := file.Seek(int64(Offset[0]), 0)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	entry := ReadEntry(file)

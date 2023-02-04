@@ -8,7 +8,6 @@ import (
 	. "project/keyvalue/structures/dataType"
 	. "project/keyvalue/structures/entry"
 	"strconv"
-	"time"
 )
 
 /*
@@ -23,7 +22,6 @@ import (
    Value = Value data
    Timestamp = Timestamp of the operation in seconds
 */
-
 
 type WriteAheadLog struct {
 	buffer          []byte
@@ -127,7 +125,10 @@ func (wal *WriteAheadLog) WriteBuffer() {
 	}
 	wal.buffer = make([]byte, 0)
 	wal.buffer_size = 0
-	file.Close()
+	err = file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // dodajemo entry u baffer, ukoliko je pun zapisuje buffer u segment
@@ -147,27 +148,28 @@ func (wal *WriteAheadLog) addEntryToBuffer(entry *Entry) {
 func (wal *WriteAheadLog) WriteEntry(entry *Entry) {
 	//otvaramo file u append only rezimu
 	offset := wal.current_offset
-	if offset != 0{
+	if offset != 0 {
 		offset--
 	}
 	filename := wal.generateSegmentFilename(offset)
 	file, err := os.OpenFile(filename, os.O_APPEND, 0600)
 	if err != nil {
-		if os.IsNotExist(err){
+		if os.IsNotExist(err) {
 			file, err = os.Create(filename)
 		} else {
 			log.Fatal(err)
 		}
 	}
 
-	defer file.Close()
-
 	//zapisujemo entry kao niz bytova
 	_, err = file.Write(EntryToBytes(entry))
 	if err != nil {
 		log.Fatal(err)
 	}
-	file.Close()
+	err = file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//Proverava da li je prekoracio granicu za brisanje starih
 	if wal.current_offset > wal.low_water_mark {
@@ -189,7 +191,10 @@ func (wal *WriteAheadLog) readLog(filename string) {
 		}
 		entry.Print()
 	}
-	file.Close()
+	err = file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 
@@ -205,20 +210,20 @@ func (wal *WriteAheadLog) ReadAllLogs() {
 	}
 }
 
-//Funkcija ucitava najnoviji segment WAL-a koji ce memtabela koristiti pri kreiranju
-//da ne bi bila izgubljena u OM
-func (wal *WriteAheadLog) InitiateMemTable() ([]string,[]*Data) {
-	keys := make([]string,0)
+// Funkcija ucitava najnoviji segment WAL-a koji ce memtabela koristiti pri kreiranju
+// da ne bi bila izgubljena u OM
+func (wal *WriteAheadLog) InitiateMemTable() ([]string, []*Data) {
+	keys := make([]string, 0)
 	dataArr := make([]*Data, 0)
 
 	offset := wal.current_offset
-	if offset != 0{
+	if offset != 0 {
 		offset--
 	}
 
 	file, err := os.Open(wal.generateSegmentFilename(offset))
 	if err != nil {
-		if os.IsNotExist(err){
+		if os.IsNotExist(err) {
 			return keys, dataArr
 		}
 		log.Fatal(err)
@@ -240,19 +245,9 @@ func (wal *WriteAheadLog) InitiateMemTable() ([]string,[]*Data) {
 		keys = append(keys, key)
 		dataArr = append(dataArr, data)
 	}
-	file.Close()
-	return keys, dataArr
-}
-
-func main() {
-	wal := NewWriteAheadLog("test")
-	data := new(Data)
-	data.Value = []byte("majmun")
-	data.Timestamp = uint64(time.Now().Unix())
-	data.Tombstone = true
-	for i := 0; i < 101; i++ {
-		e := NewEntry(strconv.Itoa(i*125), data)
-		e.Print()
+	err = file.Close()
+	if err != nil {
+		log.Fatal(err)
 	}
-	wal.ReadAllLogs()
+	return keys, dataArr
 }

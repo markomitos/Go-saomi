@@ -62,7 +62,10 @@ func (sstable *SSTableMulti) LoadFilter() {
 	//Ucitavamo bloomfilter
 	filterFile := sstable.OpenFile("filter.bin")
 	sstable.bloomFilter = ByteToBloomFilter(filterFile)
-	filterFile.Close()
+	err := filterFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Vraca pokazivace na kreirane fajlove(summary,index,data, filter, metadata)
@@ -110,7 +113,7 @@ func (sstable *SSTableMulti) MakeFiles() []*os.File {
 	}
 
 	files := make([]*os.File, 0)
-	files = append(files,data, index, summary, filter, metadata)
+	files = append(files, data, index, summary, filter, metadata)
 	return files
 }
 
@@ -119,7 +122,7 @@ func (sstable *SSTableMulti) MakeFiles() []*os.File {
 // zapisuje u data, index tabelu, summary
 func (sstable *SSTableMulti) Flush(keys []string, values []*Data) {
 	files := sstable.MakeFiles()
-	dataFile, indexFile, summaryFile, filterFile, metadataFile := files[0],files[1],files[2],files[3],files[4]
+	dataFile, indexFile, summaryFile, filterFile, metadataFile := files[0], files[1], files[2], files[3], files[4]
 	summary := new(Summary)
 	summary.FirstKey = keys[0]
 	summary.LastKey = keys[len(keys)-1]
@@ -178,18 +181,36 @@ func (sstable *SSTableMulti) Flush(keys []string, values []*Data) {
 	}
 
 	//Upis u bloomfilter fajl
-	filterFile.Write(BloomFilterToByte(sstable.bloomFilter))
+	_, err := filterFile.Write(BloomFilterToByte(sstable.bloomFilter))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//Upis u metadata fajl
 	merkleRoot := merkle.MakeMerkel(nodes)
 	merkle.WriteFile(metadataFile, merkleRoot.Root)
 
 	//Zatvaranje fajlova
-	summaryFile.Close()
-	indexFile.Close()
-	dataFile.Close()
-	filterFile.Close()
-	metadataFile.Close()
+	err = summaryFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = indexFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dataFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = filterFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = metadataFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // ------------ PRINTOVANJE ------------
@@ -204,7 +225,10 @@ func (sstable *SSTableMulti) ReadData() {
 		}
 		entry.Print()
 	}
-	file.Close()
+	err := file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (sstable *SSTableMulti) ReadIndex() {
@@ -217,7 +241,10 @@ func (sstable *SSTableMulti) ReadIndex() {
 		}
 		fmt.Println(index)
 	}
-	file.Close()
+	err := file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (sstable *SSTableMulti) ReadSummary() *Summary {
@@ -249,7 +276,10 @@ func (sstable *SSTableMulti) ReadBloom() {
 	fmt.Println("M: ", blm.M)
 	fmt.Println("Bitset: ", blm.Bitset)
 	fmt.Println("hashfuncs: ", blm.HashFuncs)
-	file.Close()
+	err := file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
 
@@ -259,7 +289,10 @@ func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 	//Ucitavamo bloomfilter
 	filterFile := sstable.OpenFile("filter.bin")
 	sstable.bloomFilter = ByteToBloomFilter(filterFile)
-	filterFile.Close()
+	err := filterFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//Proveravamo preko BloomFiltera da li uopste treba da pretrazujemo
 	if !sstable.bloomFilter.IsInBloom([]byte(Key)) {
@@ -290,7 +323,10 @@ func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 	indexFile := sstable.OpenFile("index.bin")
 
 	found = false
-	indexFile.Seek(int64(indexInSummary.Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+	_, err = indexFile.Seek(int64(indexInSummary.Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+	if err != nil {
+		log.Fatal(err)
+	}
 	currentIndex := new(Index)
 
 	//trazimo redom
@@ -301,7 +337,10 @@ func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 			break
 		}
 	}
-	indexFile.Close() //zatvaramo indeksnu tabelu
+	err = indexFile.Close() //zatvaramo indeksnu tabelu
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if !found {
 		return false, nil
@@ -310,16 +349,19 @@ func (sstable *SSTableMulti) Find(Key string) (bool, *Data) {
 	// ------ Pristupamo disku i uzimamo podtak ------
 	dataFile := sstable.OpenFile("data.bin")
 	_, foundData := ByteToData(dataFile, currentIndex.Offset)
-	dataFile.Close()
+	err = dataFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return true, foundData
 }
 
 // ------------ DOBAVLJANJE PODATAKA ------------
 
-//Otvara fajl i postavlja pokazivac na pocetak data zone
-//vraca pokazivac na taj fajl i velicinu data zone
-func (sstable *SSTableMulti) GoToData()  (*os.File, uint64){
+// Otvara fajl i postavlja pokazivac na pocetak data zone
+// vraca pokazivac na taj fajl i velicinu data zone
+func (sstable *SSTableMulti) GoToData() (*os.File, uint64) {
 	file := sstable.OpenFile("data.bin")
 	fileInfo, err := file.Stat()
 	if err != nil {
@@ -329,8 +371,8 @@ func (sstable *SSTableMulti) GoToData()  (*os.File, uint64){
 }
 
 // ------------- RANGE SCAN -------------
-//Prolazi kroz sstabelu i trazi kljuceve koji zadovoljavaju trazeni interval
-func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan){
+// Prolazi kroz sstabelu i trazi kljuceve koji zadovoljavaju trazeni interval
+func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan) {
 
 	//Proveravamo da li je kljuc van opsega
 	summary := sstable.ReadSummary()
@@ -344,7 +386,7 @@ func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan)
 		if summary.Intervals[i].Key < minKey {
 			continue
 		}
-		if maxKey < summary.Intervals[i-1].Key{
+		if maxKey < summary.Intervals[i-1].Key {
 			break
 		}
 		chosenIntervals = append(chosenIntervals, summary.Intervals[i-1])
@@ -357,63 +399,66 @@ func (sstable *SSTableMulti) RangeScan(minKey string, maxKey string, scan *Scan)
 	// ------ Otvaramo index tabelu ------
 	indexFile := sstable.OpenFile("index.bin")
 	currentIndex := new(Index)
-	
+
 	dataFile := sstable.OpenFile("data.bin") //Otvaramo data fajl za proveru
 
 	//Prolazimo kroz sve nadjene indeksne delove
-	for i := 0; i < len(chosenIntervals); i++{
+	for i := 0; i < len(chosenIntervals); i++ {
 		if scan.FoundResults > scan.SelectedPageEnd {
 			break
 		}
 
-		indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+		_, err := indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		//trazimo redom
 		for i := 0; i < int(sstable.intervalSize); i++ {
 			currentIndex = byteToIndex(indexFile)
-			if currentIndex.Key >= minKey && currentIndex.Key <= maxKey{
+			if currentIndex.Key >= minKey && currentIndex.Key <= maxKey {
 
 				// -------- pristupamo disku i proveravamo podatak --------
 				foundKey, foundData := ByteToData(dataFile, currentIndex.Offset)
-				if !foundData.Tombstone{
+				if !foundData.Tombstone {
 					//Proveravamo da li je obelezen kao obrisan ili je vec dodat
-					if !scan.RemovedKeys[foundKey] && !scan.SelectedKeys[foundKey]{
+					if !scan.RemovedKeys[foundKey] && !scan.SelectedKeys[foundKey] {
 						scan.SelectedKeys[foundKey] = true //Obelezimo da je dodat
 
 						scan.FoundResults++
 						//Ukoliko je u opsegu nase stranice pamtimo u Scan
-						if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+						if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd {
 							scan.Keys = append(scan.Keys, foundKey)
 							scan.Data = append(scan.Data, foundData)
 						} else if scan.FoundResults > scan.SelectedPageEnd {
 							break
 						}
 					}
-				}  else {
+				} else {
 					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
 					scan.RemovedKeys[foundKey] = true
 				}
-			} else if currentIndex.Key > maxKey{
+			} else if currentIndex.Key > maxKey {
 				break
 			}
 		}
 	}
 
 	err := indexFile.Close() //zatvaramo indeksnu tabelu
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = dataFile.Close() //Zatvaramo data zonu
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 
 }
 
 // ------------- LIST SCAN -------------
-//Prolazi kroz sstabelu i trazi kljuceve koji pocinju zadatim prefiksom
-func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
+// Prolazi kroz sstabelu i trazi kljuceve koji pocinju zadatim prefiksom
+func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan) {
 
 	//Proveravamo da li je kljuc van opsega
 	summary := sstable.ReadSummary()
@@ -438,7 +483,7 @@ func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
 		}
 		//za prethodni interval
 		minimumLen = int(math.Min(float64(len(prefix)), float64(len(summary.Intervals[i-1].Key))))
-		if prefix[:minimumLen] < summary.Intervals[i-1].Key[:minimumLen]{
+		if prefix[:minimumLen] < summary.Intervals[i-1].Key[:minimumLen] {
 			break
 		}
 		chosenIntervals = append(chosenIntervals, summary.Intervals[i-1])
@@ -455,27 +500,30 @@ func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
 	dataFile := sstable.OpenFile("data.bin") //Otvaramo data fajl za proveru
 
 	//Prolazimo kroz sve nadjene indeksne delove
-	for i := 0; i < len(chosenIntervals); i++{
+	for i := 0; i < len(chosenIntervals); i++ {
 		if scan.FoundResults > scan.SelectedPageEnd {
 			break
 		}
 
-		indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+		_, err := indexFile.Seek(int64(chosenIntervals[i].Offset), 0) //Pomeramo pokazivac na pocetak trazenog indeksnog dela
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		//trazimo redom
 		for i := 0; i < int(sstable.intervalSize); i++ {
 			currentIndex = byteToIndex(indexFile)
-			if strings.HasPrefix(currentIndex.Key, prefix){
+			if strings.HasPrefix(currentIndex.Key, prefix) {
 				// -------- pristupamo disku i proveravamo podatak --------
 				foundKey, foundData := ByteToData(dataFile, currentIndex.Offset)
-				if !foundData.Tombstone{
+				if !foundData.Tombstone {
 					//Proveravamo da li je obelezen kao obrisan ili je vec dodat
-					if !scan.RemovedKeys[foundKey] && !scan.SelectedKeys[foundKey]{
+					if !scan.RemovedKeys[foundKey] && !scan.SelectedKeys[foundKey] {
 						scan.SelectedKeys[foundKey] = true //Obelezimo da je dodat
 
 						scan.FoundResults++
 						//Ukoliko je u opsegu nase stranice pamtimo u Scan
-						if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd{
+						if scan.FoundResults >= scan.SelectedPageStart && scan.FoundResults <= scan.SelectedPageEnd {
 							scan.Keys = append(scan.Keys, foundKey)
 							scan.Data = append(scan.Data, foundData)
 						} else if scan.FoundResults > scan.SelectedPageEnd {
@@ -486,36 +534,36 @@ func (sstable *SSTableMulti) ListScan(prefix string, scan *Scan){
 					//Posto je obrisan oznacicemo ga kao obrisanog da se ne uzima u obzir dalje
 					scan.RemovedKeys[foundKey] = true
 				}
-			} else if currentIndex.Key > prefix{
+			} else if currentIndex.Key > prefix {
 				break
 			}
 		}
 	}
 
 	err := indexFile.Close() //zatvaramo indeksnu tabelu
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = dataFile.Close() //Zatvaramo data zonu
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 
 }
 
-//Vraca koji je nivo i koja je po redu sstabela u LSM stablu
-func (sstable *SSTableMulti) GetPosition() (uint32, uint32){
+// Vraca koji je nivo i koja je po redu sstabela u LSM stablu
+func (sstable *SSTableMulti) GetPosition() (uint32, uint32) {
 	arr := strings.Split(sstable.directory, "/")
 	levelString := strings.TrimLeft(arr[0], "level")
 	fileString := strings.TrimLeft(arr[1], "sstable")
 
-	levelNum, err :=  strconv.Atoi(levelString)
+	levelNum, err := strconv.Atoi(levelString)
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-	fileNum, err :=  strconv.Atoi(fileString)
+
+	fileNum, err := strconv.Atoi(fileString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -523,7 +571,7 @@ func (sstable *SSTableMulti) GetPosition() (uint32, uint32){
 	return uint32(levelNum), uint32(fileNum)
 }
 
-func (sstable *SSTableMulti) GetRange() (string, string){
+func (sstable *SSTableMulti) GetRange() (string, string) {
 	summary := sstable.ReadSummary()
 	return summary.FirstKey, summary.LastKey
 }

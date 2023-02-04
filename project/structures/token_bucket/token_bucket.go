@@ -1,7 +1,6 @@
 package token_bucket
 
 import (
-	"fmt"
 	"project/keyvalue/config"
 	"time"
 )
@@ -55,19 +54,4 @@ func (b *TokenBucket) Take() bool {
 	}
 	b.tokens -= 1
 	return true
-}
-
-func main() {
-
-	bucket := NewTokenBucket()
-	for i := 0; i < 200; i++ {
-		// Saljemo zahtev ovo ce se raditi eksterno od strane ostatka sistema
-		if bucket.Take() {
-			fmt.Println("Zahtev odobren")
-		} else {
-			fmt.Println("Zahtev neodobren")
-		}
-		// Saljemo req svakih 0.01 sekundi
-		time.Sleep(time.Millisecond * 10)
-	}
 }
