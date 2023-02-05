@@ -170,7 +170,7 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 }
 
 //Funkcija koja uzima unos korisnika i poziva RangeScan
-func InitiateRangeScan(mem MemTable) {
+func InitiateRangeScan(mem MemTable, bucket *TokenBucket) {
 	var minKey string
 	var maxKey string
 	var pageLen uint32
@@ -287,7 +287,7 @@ func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, me
 }
 
 //Funkcija koja uzima unos korisnika i poziva ListScan
-func InitiateListScan(mem MemTable) {
+func InitiateListScan(mem MemTable, bucket *TokenBucket) {
 	var prefix string
 	var pageLen uint32
 	var pageNum uint32
