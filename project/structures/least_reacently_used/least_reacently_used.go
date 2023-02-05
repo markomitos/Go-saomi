@@ -24,6 +24,7 @@ type cacheMapElement struct {
 	value *Data
 }
 
+//Brise element iz cache-a
 func (lru *LRUCache) Delete(key string) {
 	found, _ := lru.Get(key)
 	if found {
@@ -33,6 +34,7 @@ func (lru *LRUCache) Delete(key string) {
 	}
 }
 
+//Konstruktor
 func NewLRU() *LRUCache {
 	c := config.GetConfig()
 
@@ -43,6 +45,7 @@ func NewLRU() *LRUCache {
 	}
 }
 
+//Zapisuje LRU iz operativne memorije u cache file 
 func (lru *LRUCache) Write() {
 	//Trazimo lokaciju fajla
 	path, err1 := filepath.Abs("files/cache/cache.bin")
@@ -82,6 +85,7 @@ func (lru *LRUCache) Write() {
 	}
 }
 
+//Cita LRU iz cache file-a
 func ReadLru() *LRUCache {
 	lru := NewLRU()
 	// Otvaramo fajl
@@ -131,6 +135,7 @@ func ReadLru() *LRUCache {
 	return lru
 }
 
+//Dobavlja element iz lru-a
 func (lru *LRUCache) Get(key string) (bool, *Data) {
 	elem, ok := lru.elementMap[key]
 	if !ok {
@@ -141,6 +146,7 @@ func (lru *LRUCache) Get(key string) (bool, *Data) {
 	return true, elem.value
 }
 
+//Ubacuje element u lru na prvu poziciju
 func (lru *LRUCache) Set(key string, value *Data) {
 	v, ok := lru.elementMap[key]
 	if !ok {
@@ -163,36 +169,3 @@ func (lru *LRUCache) Set(key string, value *Data) {
 	}
 	lru.Write()
 }
-
-//func main() {
-//	lru := NewLRU()
-//	lru.Set("1", NewData([]byte("ognjen"), false, uint64(time.Now().Unix())))
-//	lru.Set("2", NewData([]byte("vesna"), false, uint64(time.Now().Unix())))
-//	lru.Set("3", NewData([]byte("ilija"), false, uint64(time.Now().Unix())))
-//	lru.Set("4", NewData([]byte("branko"), false, uint64(time.Now().Unix())))
-//	lru.Set("5", NewData([]byte("marko"), false, uint64(time.Now().Unix())))
-//	lru.Set("6", NewData([]byte("zarko"), false, uint64(time.Now().Unix())))
-//
-//	found, elem := lru.Get("4")
-//
-//	if found {
-//		println("super pronadjen: ", string(elem.Value))
-//	}
-//
-//	println("sada brisemo")
-//	lru.Delete("4")
-//
-//	found, elem = lru.Get("4")
-//
-//	if !found {
-//		println("Sve super nije pronadjen element koji je obrisan")
-//	}
-//
-//	//
-//	//lru.WriteLru()
-//	//ime := lru.Get("2")
-//	//fmt.Println(ime)
-//	//lru.Set("7", "darko")
-//	//ime = lru.Get("2")
-//	//fmt.Println(ime)
-//}

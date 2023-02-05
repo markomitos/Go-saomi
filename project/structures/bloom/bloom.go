@@ -26,6 +26,7 @@ func NewBloomFilter(expectedNumOfElem uint32, falsePositiveRate float64) *BloomF
 	return blm
 }
 
+//Dodaje element u bloom filter
 func (blm *BloomFilter) AddToBloom(elem []byte) {
 	blm.N++
 	for _, fn := range blm.HashFuncs {
@@ -34,6 +35,7 @@ func (blm *BloomFilter) AddToBloom(elem []byte) {
 	}
 }
 
+//Proverava da li se kljuc mozda nalazi ili sigurno ne nalazi u bloom filteru
 func (blm *BloomFilter) IsInBloom(elem []byte) bool {
 	for _, fn := range blm.HashFuncs {
 		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(blm.M)))
@@ -44,6 +46,7 @@ func (blm *BloomFilter) IsInBloom(elem []byte) bool {
 	return true
 }
 
+//Pretvara niz boolova u bajtove
 func MenuBoolsToBytes(t []bool) []byte {
 	b := make([]byte, (len(t)+7)/8)
 	for i, x := range t {
@@ -54,6 +57,7 @@ func MenuBoolsToBytes(t []bool) []byte {
 	return b
 }
 
+//Pretvara niz bajtova u boolove
 func MenuBytesToBools(b []byte) []bool {
 	t := make([]bool, 8*len(b))
 	for i, x := range b {
@@ -66,6 +70,7 @@ func MenuBytesToBools(b []byte) []bool {
 	return t
 }
 
+//Pretvara bloomfilter u bajtove
 func MenuBloomFilterToByte(blm *BloomFilter) []byte {
 	//Zapisujemo konstante
 	bytes := make([]byte, 4)
@@ -101,6 +106,7 @@ func MenuBloomFilterToByte(blm *BloomFilter) []byte {
 	return bytes
 }
 
+//Pretvara niz bajtova u bloomfilter
 func MenuByteToBloomFilter(blmBytes []byte) *BloomFilter {
 	blm := new(BloomFilter)
 	reader := bytes.NewReader(blmBytes)

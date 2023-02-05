@@ -111,7 +111,7 @@ func BloomFilterFindElem(blm *BloomFilter) {
 	found := blm.IsInBloom(val)
 
 	if found {
-		fmt.Println("Podatak se nalazi u BloomFilteru")
+		fmt.Println("Podatak se mozda nalazi u BloomFilteru")
 	}
 	
 	if !found {

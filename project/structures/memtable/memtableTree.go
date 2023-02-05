@@ -31,6 +31,7 @@ func (m *MemTableTree) Print() {
 	m.btree.PrintBTree()
 }
 
+//Trazi zadati kljuc u memtabeli
 func (m *MemTableTree) Find(key string) (bool, *Data) {
 	found, node := m.btree.FindNode(key)
 	if !found {
@@ -39,6 +40,7 @@ func (m *MemTableTree) Find(key string) (bool, *Data) {
 	return true, node.Values[key]
 }
 
+//Flush na disk -> kreira novu sstabelu
 func (m *MemTableTree) Flush() {
 	config := GetConfig()
 
@@ -63,6 +65,7 @@ func (m *MemTableTree) Flush() {
 	}
 }
 
+//Ubacuje element u memtabelu
 func (m *MemTableTree) Put(key string, data *Data) {
 	m.btree.Put(key, data)
 
@@ -71,6 +74,7 @@ func (m *MemTableTree) Put(key string, data *Data) {
 	}
 }
 
+//Brise element iz memtabele
 func (m *MemTableTree) Remove(key string) {
 	//Ukoliko nije nasao trazeni kljuc u Memtable
 	//Dodaje ga kao novi element sa tombstone=true

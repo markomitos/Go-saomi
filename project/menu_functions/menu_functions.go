@@ -14,15 +14,13 @@ import (
 	"time"
 )
 
-//TO DO: funkcija koja ce se pozivati iz menija
-
 func GetKeyInput() (string) {
 	var key string
 	for true {
 		fmt.Print("Unesite kljuc: ")
 		n, err := fmt.Scanln(&key)
 
-		//validacije
+		//validacije rezervisanih reci
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
 		} else if n == 0 {
@@ -35,7 +33,9 @@ func GetKeyInput() (string) {
 			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if strings.HasPrefix(key, "SimHash") {
 			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
-		} else {
+		} else if key == "*" {
+			print("Upotrebili ste rezervisani kljuc! Molimo vas unesite drugi kljuc.")
+		}else {
 			break
 		}
 		
@@ -162,7 +162,7 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 	return false, nil
 }
 
-func InitiateRangeScan(mem MemTable) {
+func InitiateRangeScan(mem MemTable, bucket *TokenBucket) {
 	var minKey string
 	var maxKey string
 	var pageLen uint32
@@ -220,23 +220,28 @@ func InitiateRangeScan(mem MemTable) {
 			break
 		}
 	}
-	found, keys, datas := RANGE_SCAN(minKey, maxKey, pageLen, pageNum, mem)
+	found, keys, datas := RANGE_SCAN(minKey, maxKey, pageLen, pageNum, mem, bucket)
 	if found {
+		fmt.Println("=======================================")
+		fmt.Println("========== REZULTAT PRETRAGE ==========")
+		fmt.Println("=======================================")
 		for i := 0; i < len(keys); i++ {
-			print("Kljuc: ", keys[i])
+			fmt.Println("Kljuc: ", keys[i])
 			datas[i].Print()
 		}
+		fmt.Println("=======================================")
 	}
-
-
-
 }
 
 // ------------ RANGE SCAN ------------
 // vraca niz kljuceva i niz podataka koji su u opsegu datog intervala
 // Vraca rezultate u opsegu od najnovijeg do najstarijeg
 // To postize tako sto iterira od najnovije do najstarije sstabele
-func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, memtable MemTable) (bool, []string, []*Data){
+func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, memtable MemTable, bucket *TokenBucket) (bool, []string, []*Data){
+	if !bucket.Take() {
+		return false, nil, nil
+	} 
+
 	lsm := ReadLsm()
 	scan := NewScan(pageLen, pageNum)
 
@@ -254,7 +259,7 @@ func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, me
 	return true, scan.Keys, scan.Data
 }
 
-func InitiateListScan(mem MemTable) {
+func InitiateListScan(mem MemTable, bucket *TokenBucket) {
 	var prefix string
 	var pageLen uint32
 	var pageNum uint32
@@ -296,23 +301,28 @@ func InitiateListScan(mem MemTable) {
 			break
 		}
 	}
-	found, keys, datas := LIST_SCAN(prefix, pageLen, pageNum, mem)
+	found, keys, datas := LIST_SCAN(prefix, pageLen, pageNum, mem, bucket)
 	if found {
+		fmt.Println("=======================================")
+		fmt.Println("========== REZULTAT PRETRAGE ==========")
+		fmt.Println("=======================================")
 		for i := 0; i < len(keys); i++ {
 			print("Kljuc: ", keys[i])
 			datas[i].Print()
 		}
+		fmt.Println("=======================================")
 	}
-
-
-
 }
 
 // ------------ LIST SCAN ------------
 // vraca niz kljuceva i niz podataka koji pocinju datim prefiksom
 // Vraca rezultate u opsegu od najnovijeg do najstarijeg
 // To postize tako sto iterira od najnovije do najstarije sstabele
-func LIST_SCAN(prefix string, pageLen uint32, pageNum uint32, memtable MemTable) (bool, []string, []*Data){
+func LIST_SCAN(prefix string, pageLen uint32, pageNum uint32, memtable MemTable, bucket *TokenBucket) (bool, []string, []*Data){
+	if !bucket.Take() {
+		return false, nil, nil
+	} 
+	
 	lsm := ReadLsm()
 	scan := NewScan(pageLen, pageNum)
 

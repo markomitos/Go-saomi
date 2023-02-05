@@ -252,13 +252,6 @@ func (sstable *SSTableMulti) ReadSummary() *Summary {
 
 	summary := byteToSummary(file)
 
-	//U SLUCAJU DA NAM TREBA ISPIS
-	// fmt.Println("First Key: ", summary.FirstKey)
-	// fmt.Println("Last Key: ", summary.LastKey)
-	// for i := 0; i < len(summary.Intervals); i++ {
-	// 	fmt.Println(summary.Intervals[i])
-	// }
-
 	err := file.Close()
 	if err != nil {
 		log.Fatal(err)
@@ -571,6 +564,7 @@ func (sstable *SSTableMulti) GetPosition() (uint32, uint32) {
 	return uint32(levelNum), uint32(fileNum)
 }
 
+//Vraca opseg iz summaryja
 func (sstable *SSTableMulti) GetRange() (string, string) {
 	summary := sstable.ReadSummary()
 	return summary.FirstKey, summary.LastKey

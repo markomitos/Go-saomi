@@ -661,6 +661,7 @@ func (sstable *SSTableSingle) GetPosition() (uint32, uint32) {
 
 }
 
+//Vraca opseg iz summaryja
 func (sstable *SSTableSingle) GetRange() (string, string) {
 	//Otvaramo fajl i citamo header
 	sstableFile := sstable.OpenFile("sstable.bin")

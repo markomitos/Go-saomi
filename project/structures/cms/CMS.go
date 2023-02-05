@@ -16,6 +16,7 @@ type CountMinSketch struct {
 	HashFuncs  []CmsHashWithSeed
 }
 
+//Konstruktor
 func NewCountMinSketch(Epsilon float64, Delta float64) *CountMinSketch {
 	cms := new(CountMinSketch)
 	cms.K = CmsCalculateK(Delta)
@@ -30,6 +31,7 @@ func NewCountMinSketch(Epsilon float64, Delta float64) *CountMinSketch {
 	return cms
 }
 
+//Dodaje element u cms
 func AddToCms(cms *CountMinSketch, elem []byte) {
 	for i, fn := range cms.HashFuncs {
 		hashedValue := int(math.Mod(float64(fn.Hash(elem)), float64(cms.M)))
@@ -37,6 +39,7 @@ func AddToCms(cms *CountMinSketch, elem []byte) {
 	}
 }
 
+//Vraca procenjenu kardinalnost elementa
 func CheckFrequencyInCms(cms *CountMinSketch, elem []byte) uint32 {
 	//Pomocni slice pomocu kojeg racuna min (sastoji se od svih vrednosti)
 	arr := make([]uint32, cms.K)
@@ -53,6 +56,7 @@ func CheckFrequencyInCms(cms *CountMinSketch, elem []byte) uint32 {
 	return min
 }
 
+//Pretvara cms u bajtove
 func CountMinSkechToBytes(cms *CountMinSketch) []byte {
 
 	//upisujemo promenljive tipa uint32
@@ -95,6 +99,7 @@ func CountMinSkechToBytes(cms *CountMinSketch) []byte {
 	return bytes
 }
 
+//Pretvara bajtove u cms
 func BytesToCountMinSketch(CmsBytes []byte) *CountMinSketch {
 	cms := new(CountMinSketch)
 	reader := bytes.NewReader(CmsBytes)

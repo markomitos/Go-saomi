@@ -41,6 +41,7 @@ func (s *SkipList) roll() uint {
 	return level
 }
 
+//Konstruktor
 func NewSkipList(maxh uint) *SkipList {
 	skipList := new(SkipList)
 	skipList.maxHeight = maxh
@@ -58,6 +59,7 @@ func (s *SkipList) GetSize() uint {
 	return s.size
 }
 
+//Trazi zadati kljuc u skiplisti
 func (s *SkipList) Find(key string) (*SkipListNode, bool) {
 	currentNode := s.head
 	for currentLevel := int(s.height) - 1; currentLevel >= 0; currentLevel-- {
@@ -101,6 +103,7 @@ func (s *SkipList) updateNodePointers(node *SkipListNode, minHeight int) {
 	}
 }
 
+//Ubacuje kljuc i vrednost u skiplistu
 func (s *SkipList) Put(key string, data *Data) {
 	node, found := s.Find(key)
 	//update ako ga je nasao
@@ -130,6 +133,7 @@ func (s *SkipList) Put(key string, data *Data) {
 	}
 }
 
+//Regulise visinu skipliste
 func (s *SkipList) updateHeight() {
 	for currentLevel := s.height - 1; currentLevel >= 0; currentLevel-- {
 		if s.head.next[currentLevel] == nil {
@@ -185,7 +189,6 @@ func (s *SkipList) Remove(key string) bool {
 // uzima sve podatke u sortiranom redosledu
 func (s *SkipList) GetAllNodes(keys *[]string, values *[]*Data) {
 
-	// var nodeList = make(map[string]*dataType.Data)
 	currentNode := s.head
 	for currentNode.next[0] != nil {
 		next := currentNode.next[0]
@@ -193,12 +196,12 @@ func (s *SkipList) GetAllNodes(keys *[]string, values *[]*Data) {
 
 		*keys = append(*keys, next.key)
 		*values = append(*values, data)
-		// nodeList[next.key] = data
 
 		currentNode = next
 	}
 }
 
+//Ispis cele skipliste
 func (s *SkipList) Print() {
 	fmt.Println(strings.Repeat("_", 100))
 	fmt.Println()
@@ -226,6 +229,7 @@ func (s *SkipList) Print() {
 	}
 	fmt.Println(strings.Repeat("_", 100))
 }
+
 
 func (s *SkipList) RangeScan(minKey string, maxKey string, scan *Scan){
 	currentNode := s.head

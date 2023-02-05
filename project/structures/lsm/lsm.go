@@ -143,6 +143,7 @@ func GenerateFlushName() string {
 	return "level1/sstable" + strconv.FormatUint(uint64(currentMax+1), 10)
 }
 
+//Vraca ime za sstabelu za zadati nivo i indeks
 func (lsm *Lsm) GenerateSSTableName(currentLevel uint32, index uint32) string {
 	return "level" + strconv.FormatUint(uint64(currentLevel), 10) + "/sstable" + strconv.FormatUint(uint64(index), 10)
 }

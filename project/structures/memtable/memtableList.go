@@ -30,6 +30,7 @@ func (m *MemTableList) Print() {
 	m.slist.Print()
 }
 
+//Trazi zadati kljuc u memtabeli
 func (m *MemTableList) Find(key string) (bool, *Data) {
 	node, found := m.slist.Find(key)
 	if !found {
@@ -38,6 +39,7 @@ func (m *MemTableList) Find(key string) (bool, *Data) {
 	return true, node.Data
 }
 
+//Flush na disk -> kreira novu sstabelu
 func (m *MemTableList) Flush() {
 	keys := make([]string, 0)
 	values := make([]*Data, 0)
@@ -60,6 +62,7 @@ func (m *MemTableList) Flush() {
 	}
 }
 
+//Ubacuje element u memtabelu
 func (m *MemTableList) Put(key string, data *Data) {
 	m.slist.Put(key, data)
 
@@ -68,6 +71,7 @@ func (m *MemTableList) Put(key string, data *Data) {
 	}
 }
 
+//Brise element iz memtabele
 func (m *MemTableList) Remove(key string) {
 	//Ukoliko nije nasao trazeni kljuc u Memtable
 	//Dodaje ga kao novi element sa tombstone=true

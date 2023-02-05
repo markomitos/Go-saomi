@@ -17,26 +17,23 @@ const (
 )
 
 type HLL struct {
-	M   uint64
+	M   uint64 //Velicina niza
 	P   uint8
 	Reg []uint8
 }
 
 // Hash i pretvaranje u binaran oblik
 func Hash(data string) string {
-	// fn := md5.New()
-	// num := binary.BigEndian.Uint32(fn.Sum(data))
 	h := fnv.New32a()
 	h.Write([]byte(data))
 	num := h.Sum32()
-	// fmt.Println(num)
 
 	//Dodajemo nule na pocetak da se dopune 32 bita
 	str := fmt.Sprintf("%b", num)
 	for len(str) < 32 {
 		str = "0" + str
 	}
-	// fmt.Println(str)
+
 	return str
 }
 
@@ -52,6 +49,7 @@ func NewHLL(precision uint8) (*HLL, error) {
 	return hll, nil
 }
 
+//Dodaje element u hll
 func (hll *HLL) AddToHLL(elem string) {
 	hashString := Hash(elem)
 	// fmt.Println(hashString)
@@ -76,7 +74,7 @@ func (hll *HLL) AddToHLL(elem string) {
 
 }
 
-// Vraca procenjenu kardinalnost
+// Vraca procenjeni broj elemenata 
 func (hll *HLL) Estimate() float64 {
 	sum := 0.0
 	for _, val := range hll.Reg {
@@ -107,6 +105,7 @@ func (hll *HLL) emptyCount() int {
 	return sum
 }
 
+//Pretvara hll u niz bajtova
 func HyperLogLogToBytes(hll *HLL) []byte {
 
 	//upisujemo promenljive tipa uint32
@@ -126,6 +125,7 @@ func HyperLogLogToBytes(hll *HLL) []byte {
 	return bytes
 }
 
+//Pretvara niz bajtova u hll
 func BytesToHyperLogLog(HllBytes []byte) *HLL {
 	hll := new(HLL)
 	reader := bytes.NewReader(HllBytes)

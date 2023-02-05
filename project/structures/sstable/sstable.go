@@ -37,6 +37,7 @@ type Summary struct {
 	Intervals []*Index
 }
 
+//Konstruktor
 func NewSSTable(size uint32, directory string) SST {
 	config := GetConfig()
 	var sstable SST

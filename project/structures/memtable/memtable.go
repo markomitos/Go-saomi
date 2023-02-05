@@ -29,6 +29,8 @@ func NewMemTable(s uint) MemTable{
 	return memTable
 }
 
+//Poziva se pri ucitavanju iz wal-a
+//Smesta niz kljuceva i vrednosti u memoriju
 func LoadToMemTable(keys []string, data []*Data) MemTable{
 	config := GetConfig()
 	memtable := NewMemTable(config.MemtableSize)

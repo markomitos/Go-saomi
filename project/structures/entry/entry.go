@@ -9,7 +9,7 @@ import (
 	. "project/keyvalue/structures/dataType"
 )
 
-// struktura za svaki pojedinac zapis
+// struktura za svaki pojedinacni zapis
 type Entry struct {
 	Crc        []byte
 	Timestamp  []byte
@@ -156,6 +156,6 @@ func (entry *Entry) Print() {
 	println("Key size: ", Key_size)
 	println("Value size: ", Value_size)
 	println("Key: ", string(entry.Key))
-	println("Value: ", string(entry.Value))
+	println("Value: ", entry.Value)
 	println("---------------------------------------")
 }

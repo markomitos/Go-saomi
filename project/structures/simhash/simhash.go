@@ -22,6 +22,7 @@ func ToBinary(s string) string {
 	}
 	return res
 }
+
 //pretvara niz bajtova u mapu
 //kljuc - rec
 //vrednost - broj ponavljanja te reci
@@ -50,7 +51,8 @@ func GenerateWeightedMap(bytes []byte) map[string]int {
 	}
 	return mapa
 }
-	//Hash i konvertovanje u binarno
+
+//Hash i konvertovanje u binarno
 func HashText(weightedMap map[string]int) []int {
 
 	hashedMap := make(map[string]string)
