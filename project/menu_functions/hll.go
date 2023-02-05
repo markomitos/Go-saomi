@@ -1,22 +1,27 @@
 package menu_functions
 
 import (
+	"bufio"
 	"fmt"
+	"log"
+	"os"
 	. "project/keyvalue/structures/hll"
 	. "project/keyvalue/structures/least_reacently_used"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/token_bucket"
 	"strconv"
+	"strings"
 )
 
-//korisnik unosi kljuc i kreira se novi HLL
+// korisnik unosi kljuc i kreira se novi HLL
 func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *HLL) {
 	var input string //kljuc
 	hll := new(HLL)
 	var precision uint8
 	var tempInput string
+	scanner := bufio.NewScanner(os.Stdin)
 
-	for true{
+	for true {
 
 		fmt.Print("Unesite kljuc: ")
 		input = GetKeyInput()
@@ -34,70 +39,77 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 				fmt.Println("1. Dobavite ovaj HyperLogLog iz baze podataka")
 				fmt.Println("2. Napravite novi HyperLogLog pod ovim kljucem")
 				fmt.Print("Unesite 1 ili 2: ")
-				fmt.Scanln(&choice)
+				scanner.Scan()
+				choice = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
+				if err != nil {
+					log.Fatal(err)
+				}
 
 				if choice == "*" {
 					return true, input, nil
 				}
-				
+
 				if choice == "1" {
 					hll = BytesToHyperLogLog(data.Value)
 					fmt.Println("Uspesno dobavljanje")
 					return false, input, hll
 
-				}else if choice == "2"{
+				} else if choice == "2" {
 
 					for true {
 						fmt.Println("Unesite preciznost: ")
-						n, err := fmt.Scanln(&tempInput)
+						scanner.Scan()
+						tempInput = strings.TrimSpace(scanner.Text())
+
+						err := scanner.Err()
 						if tempInput == "*" {
 							return true, input, nil
 						}
 						if err != nil {
 							fmt.Println("Greska prilikom unosa: ", err)
-						} else if n == 0 {
-							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-						}else if !IsNumeric(tempInput) {
+						} else if !IsNumeric(tempInput) {
 							fmt.Println("Molimo vas unesite broj.")
-						}else {
+						} else {
 							tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
 							precision = uint8(tempInt)
 							break
 						}
-				
+
 					}
 
 					hll, _ = NewHLL(precision)
 					fmt.Println("Uspesno dodavanje")
 					return false, input, hll
-				} else{
+				} else {
 					fmt.Println("Molimo vas unesite 1 ili 2")
 				}
 			}
-			
-			return true, input, nil
-		}else{
 
+			return true, input, nil
+		} else {
 
 			for true {
-						fmt.Println("Unesite preciznost: ")
-						n, err := fmt.Scanln(&tempInput)
-						if tempInput == "*" {
-							return true, input, nil
-						}
-						if err != nil {
-							fmt.Println("Greska prilikom unosa")
-						} else if n == 0 {
-							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-						}else if !IsNumeric(tempInput) {
-							fmt.Println("Molimo vas unesite broj.")
-						}else {
-							tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
-							precision = uint8(tempInt)
-							break
-						}
-				
-					}
+				fmt.Println("Unesite preciznost: ")
+				scanner.Scan()
+				input = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
+				if tempInput == "*" {
+					return true, input, nil
+				}
+				if err != nil {
+					fmt.Println("Greska prilikom unosa")
+				} else if !IsNumeric(tempInput) {
+					fmt.Println("Molimo vas unesite broj.")
+				} else {
+					tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
+					precision = uint8(tempInt)
+					break
+				}
+
+			}
 			hll, _ = NewHLL(precision)
 
 			break
@@ -118,7 +130,7 @@ func GetHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, str
 		return false, key, nil
 	}
 	key = "HyperLogLog" + key
-	
+
 	found, data := GET(key, mem, lru, bucket)
 	if found {
 		hllBytes := data.Value
@@ -131,11 +143,14 @@ func GetHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, str
 
 func HyperLogLogAddElement(hll *HLL) {
 	var val string
-
+	scanner := bufio.NewScanner(os.Stdin)
 	//unos
 	for true {
 		fmt.Print("Unesite podatak koji zelite da dodate: ")
-		_, err := fmt.Scanln(&val)
+		scanner.Scan()
+		val = strings.TrimSpace(scanner.Text())
+
+		err := scanner.Err()
 		if err != nil {
 			fmt.Println("Greska prilikom unosa")
 		} else if val == "*" {
@@ -144,7 +159,7 @@ func HyperLogLogAddElement(hll *HLL) {
 			break
 		}
 	}
-	
+
 	hll.AddToHLL(val)
 	fmt.Println("Uspesno dodavanje")
 }
@@ -154,7 +169,7 @@ func HyperLogLogEstimate(hll *HLL) {
 	estimation := hll.Estimate()
 	fmt.Print("Procenjena kardinalnost iznosi: ")
 	fmt.Print(estimation)
-	
+
 }
 
 func HyperLogLogPUT(key string, hll *HLL, mem MemTable, bucket *TokenBucket) {
@@ -168,6 +183,7 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	var activeKey string //kljuc HyperLogLog-a
 	var userkey string   //kljuc koji je korisnik uneo i koji se ispisuje korisniku
 	userkey = ""
+	scanner := bufio.NewScanner(os.Stdin)
 	for true {
 
 		fmt.Println("=======================================")
@@ -187,13 +203,13 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Print("Izaberite opciju: ")
 
 		var input string
-		n, err := fmt.Scanln(&input)
+		scanner.Scan()
+		input = strings.TrimSpace(scanner.Text())
+
+		err := scanner.Err()
 
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
-		} else if n == 0 {
-			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-			return
 		}
 		switch input {
 		case "1":
@@ -216,7 +232,7 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 					fmt.Println("Ne postoji HyperLogLog sa datim kljucem")
 				}
 			}
-			
+
 		case "3":
 
 			if len(activeKey) != 0 {
@@ -243,7 +259,7 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 				fmt.Println("Uspesno brisanje")
 			} else {
 				fmt.Println("Nije izabran aktivni HyperLogLog")
-				
+
 			}
 		case "x":
 			return
