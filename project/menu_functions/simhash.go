@@ -1,12 +1,15 @@
 package menu_functions
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	. "project/keyvalue/structures/dataType"
 	. "project/keyvalue/structures/least_reacently_used"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/simhash"
 	. "project/keyvalue/structures/token_bucket"
+	"strings"
 )
 
 //Generise i upisuje u bazu podataka binarni kod
@@ -73,6 +76,7 @@ func SimHashCompare(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 
 
 func SimHashMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
+	scanner := bufio.NewScanner(os.Stdin)
 	for true {
 
 		fmt.Println("=======================================")
@@ -84,14 +88,14 @@ func SimHashMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Print("Izaberite opciju: ")
 
 		var input string
-		n, err := fmt.Scanln(&input)
+		scanner.Scan()
+		input = strings.TrimSpace(scanner.Text())
 
+		err := scanner.Err()
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
-		} else if n == 0 {
-			fmt.Println("Prazan unos. Molimo vas probajte opet.")
-			return
 		}
+		
 		switch input {
 		case "1":
 			SimHashGenerateBinaryHash(mem, lru, bucket)

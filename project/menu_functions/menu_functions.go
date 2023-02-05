@@ -1,7 +1,9 @@
 package menu_functions
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	. "project/keyvalue/structures/dataType"
 	. "project/keyvalue/structures/entry"
 	. "project/keyvalue/structures/least_reacently_used"
@@ -22,17 +24,19 @@ func IsNumeric(word string) bool{
 }
 
 func GetKeyInput() (string) {
+	scanner := bufio.NewScanner(os.Stdin)
+
 	var key string
 	for true {
 		fmt.Print("Unesite kljuc: ")
-		n, err := fmt.Scanln(&key)
+		scanner.Scan()
+		key = strings.TrimSpace(scanner.Text())
+		err := scanner.Err()
 
 		//validacije rezervisanih reci
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
-		} else if n == 0 {
-			fmt.Println("Prazan unos. Molimo vas probajte opet.")
-		}else if strings.HasPrefix(key, "BloomFilter") {
+		} else if strings.HasPrefix(key, "BloomFilter") {
 			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if strings.HasPrefix(key, "CountMinSketch") {
 			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
@@ -40,9 +44,7 @@ func GetKeyInput() (string) {
 			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if strings.HasPrefix(key, "SimHash") {
 			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
-		} else if key == "*" {
-			fmt.Println("Upotrebili ste rezervisani kljuc! Molimo vas unesite drugi kljuc.")
-		}else {
+		} else {
 			break
 		}
 		
@@ -51,14 +53,16 @@ func GetKeyInput() (string) {
 }
 
 func GetValueInput() ([]byte) {
+	scanner := bufio.NewScanner(os.Stdin)
 	var elem []byte
 	for true {
 		fmt.Print("Unesite vrednost: ")
-		n, err := fmt.Scanln(&elem)
+		scanner.Scan()
+		elem = []byte(strings.TrimSpace(scanner.Text()))
+		err := scanner.Err()
+
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
-		} else if n == 0 {
-			fmt.Println("Prazan unos. Molimo vas probajte opet.")
 		} else {
 			break
 		}

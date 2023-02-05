@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 
 	// "strconv"
 
@@ -63,19 +65,22 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	fmt.Print("Izaberite opciju: ")
 
 	var input string
-	n, err := fmt.Scanln(&input)
 
+
+	scanner := bufio.NewScanner(os.Stdin)
+    scanner.Scan()
+	input = strings.TrimSpace(scanner.Text())
+
+	err := scanner.Err()
 	if err != nil {
 		fmt.Println("Greska prilikom unosa!")
-	} else if n == 0 {
-		fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-		return
 	}
 	switch input {
 	case "1":
 		key, val := GetUserInput()
 		if key != "*"{
 			PUT(key, val, mem, bucket)
+			fmt.Println("Uspesno dodavanje")
 		}
 	case "2":
 		key:= GetKeyInput()
@@ -141,18 +146,18 @@ func main() {
 
 
 	// ---------- GENERATOR ----------
-	for i:=1023; i > 0; i--{
-		value := []byte(RandomString(5))
-		key := RandomString(5)
-		// key := strconv.FormatInt(int64(i),10)
+	// for i:=1023; i > 0; i--{
+	// 	value := []byte(RandomString(5))
+	// 	key := RandomString(5)
+	// 	// key := strconv.FormatInt(int64(i),10)
 		
-		if !PUT(key,value,memtable,bucket){
-			fmt.Println("NAPAD")
-		} else {
-			fmt.Println("PROSLO")
-		}
-		time.Sleep(time.Millisecond * 100)
-	}
+	// 	if !PUT(key,value,memtable,bucket){
+	// 		fmt.Println("NAPAD")
+	// 	} else {
+	// 		fmt.Println("PROSLO")
+	// 	}
+	// 	time.Sleep(time.Millisecond * 100)
+	// }
 	
 
 	for true {

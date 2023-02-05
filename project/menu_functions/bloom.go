@@ -1,16 +1,21 @@
 package menu_functions
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	. "project/keyvalue/structures/bloom"
 	. "project/keyvalue/structures/least_reacently_used"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/token_bucket"
 	"strconv"
+	"strings"
 )
 
 func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *BloomFilter) {
+	scanner := bufio.NewScanner(os.Stdin)
+    
 	var input string //kljuc
 	blm := new(BloomFilter)
 	var expectedNumOfElem uint32
@@ -34,17 +39,18 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 				fmt.Println("1. Dobavite ovaj BloomFilter iz baze podataka")
 				fmt.Println("2. Napravite novi BloomFilter pod ovim kljucem")
 				fmt.Print("Unesite 1 ili 2: ")
-				n, err := fmt.Scanln(&choice)
+
+				scanner.Scan()
+				choice = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
 				if choice == "*" {
 					return true, input, nil
 				}
 
 				if err != nil {
 					fmt.Println("Greska prilikom unosa: ", err)
-				} else if n == 0 {
-					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-				//ukoliko nema greske:
-				} else {
+				} else { //ukoliko nema greske:
 					if choice == "1" {
 						blm = MenuByteToBloomFilter(data.Value)
 						return false, input, blm
@@ -53,15 +59,16 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 	
 						for true {
 							fmt.Println("Unesite ocekivani broj elemenata: ")
-							n, err := fmt.Scanln(&tempInput)
+							scanner.Scan()
+							tempInput = strings.TrimSpace(scanner.Text())
+
+							err = scanner.Err()
 							if tempInput == "*" {
 								return true, input, nil
 							}
 							if err != nil {
 								fmt.Println("Greska prilikom unosa: ", err)
-							} else if n == 0 {
-								fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-							}else if !IsNumeric(tempInput) {
+							} else if !IsNumeric(tempInput) {
 								fmt.Println("Molimo vas unesite broj.")
 							}else {
 								tempInt, _ := strconv.ParseUint(tempInput, 10, 64)
@@ -72,15 +79,16 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 						}
 						for true {
 							fmt.Println("Unesite Sigurnost tacnosti: ")
-							n, err := fmt.Scanln(&tempInput)
+							scanner.Scan()
+							tempInput = strings.TrimSpace(scanner.Text())
+
+							err = scanner.Err()
 							if tempInput == "*" {
 								return true, input, nil
 							}
 							if err != nil {
 								fmt.Println("Greska prilikom unosa: ", err)
-							} else if n == 0 {
-								fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-							}else if !IsNumeric(tempInput) {
+							} else if !IsNumeric(tempInput) {
 								fmt.Println("Molimo vas unesite broj.")
 							}else {
 								tempFloat, _ := strconv.ParseFloat(tempInput, 64)
@@ -105,15 +113,16 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 
 			for true {
 				fmt.Println("Unesite ocekivani broj elemenata: ")
-				n, err := fmt.Scanln(&tempInput)
+				scanner.Scan()
+				tempInput = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
 				if tempInput == "*" {
 					return true, input, nil
 				}
 				if err != nil {
 					fmt.Println("Greska prilikom unosa: ", err)
-				} else if n == 0 {
-					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-				}else if !IsNumeric(tempInput) {
+				} else if !IsNumeric(tempInput) {
 					fmt.Println("Molimo vas unesite broj.")
 				}else {
 					tempInt, _ := strconv.ParseUint(tempInput, 10, 64)
@@ -124,15 +133,16 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 			}
 			for true {
 				fmt.Println("Unesite Sigurnost tacnosti: ")
-				n, err := fmt.Scanln(&tempInput)
+				scanner.Scan()
+				tempInput = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
 				if tempInput == "*" {
 					return true, input, nil
 				}
 				if err != nil {
 					fmt.Println("Greska prilikom unosa: ", err)
-				} else if n == 0 {
-					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-				}else if !IsNumeric(tempInput) {
+				} else if !IsNumeric(tempInput) {
 					fmt.Println("Molimo vas unesite broj.")
 				}else {
 					tempFloat, _ := strconv.ParseFloat(tempInput, 64)
@@ -212,6 +222,7 @@ func BloomFilterPUT(key string, blm *BloomFilter, mem MemTable, bucket *TokenBuc
 }
 
 func BloomFilterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
+	scanner := bufio.NewScanner(os.Stdin)
 	activeBLM := new(BloomFilter)
 	var activeKey string //kljuc Bloom filtera
 	var userkey string   //kljuc koji je korisnik uneo i koji se ispisuje korisniku
@@ -236,13 +247,12 @@ func BloomFilterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Print("Izaberite opciju: ")
 
 		var input string
-		n, err := fmt.Scanln(&input)
+		scanner.Scan()
+		input = strings.TrimSpace(scanner.Text())
 
+		err := scanner.Err()
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
-		} else if n == 0 {
-			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-			return
 		}
 
 		switch input {
