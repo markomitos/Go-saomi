@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 	. "project/keyvalue/structures/cms"
 	. "project/keyvalue/structures/least_reacently_used"
@@ -70,8 +71,13 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 							fmt.Println("Molimo vas unesite broj.")
 						}else {
 							tempInt, _ := strconv.ParseFloat(tempInput, 64)
-							epsilon = tempInt
-							break
+							tempInt = math.Abs(tempInt)
+							if tempInt > 7 {
+								fmt.Println("Preciznost ne sme biti veca od 7!")
+							} else {
+								epsilon = tempInt
+								break
+							}
 						}
 					}
 					for true {
@@ -89,8 +95,13 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 							fmt.Println("Molimo vas unesite broj.")
 						}else {
 							tempInt, _ := strconv.ParseFloat(tempInput, 64)
-							delta = tempInt
-							break
+							tempInt = math.Abs(tempInt)
+							if tempInt > 7 {
+								fmt.Println("Procenat dozvoljene greske ne sme biti veci od 7!")
+							} else {
+								delta = tempInt
+								break
+							}
 						}
 					}
 
@@ -118,8 +129,13 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 					fmt.Println("Molimo vas unesite broj.")
 				}else {
 					tempInt, _ := strconv.ParseFloat(tempInput, 64)
-					epsilon = tempInt
-					break
+					tempInt = math.Abs(tempInt)
+					if tempInt > 7 {
+						fmt.Println("Preciznost ne sme biti veca od 7!")
+					} else {
+						epsilon = tempInt
+						break
+					}
 				}
 			}
 			for true {
@@ -137,8 +153,13 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 					fmt.Println("Molimo vas unesite broj.")
 				}else {
 					tempInt, _ := strconv.ParseFloat(tempInput, 64)
-					delta = tempInt
-					break
+					tempInt = math.Abs(tempInt)
+					if tempInt > 7 {
+						fmt.Println("Procenat dozvoljene greske ne sme biti veci od 7!")
+					} else {
+						delta = tempInt
+						break
+					}
 				}
 			}
 			cms = NewCountMinSketch(epsilon, delta)
@@ -176,7 +197,6 @@ func CountMinSketchAddElement(cms *CountMinSketch) {
 	var val []byte
 
 	//unos
-	fmt.Println("Unesite podatak koji zelite da dodate: ")
 	val = GetValueInput()
 	if bytes.Compare(val, []byte("*")) == 0 { //ukoliko je zvezdica, izadji iz funkcije
 		return
@@ -189,7 +209,6 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 	var val []byte
 
 	//unos
-	fmt.Println("Unesite podatak koji zelite da proverite: ")
 	val = GetValueInput()
 	if bytes.Compare(val, []byte("*")) == 0 { //ukoliko je zvezdica, izadji iz funkcije
 		return

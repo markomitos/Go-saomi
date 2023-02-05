@@ -183,7 +183,6 @@ func BloomFilterAddElement(blm *BloomFilter) {
 	var val []byte
 
 	//unos
-	fmt.Println("Unesite podatak koji zelite da dodate: ")
 	val = GetValueInput()
 
 	if bytes.Compare(val, []byte("*")) == 0 { 	//ukoliko je uneta *
@@ -198,7 +197,6 @@ func BloomFilterFindElem(blm *BloomFilter) {
 	var val []byte
 
 	//unos
-	fmt.Println("Unesite podatak koji zelite da proverite: ")
 	val = GetValueInput()
 
 	if bytes.Compare(val, []byte("*")) == 0 { 	//ukoliko je uneta *
