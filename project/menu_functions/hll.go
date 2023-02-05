@@ -6,6 +6,7 @@ import (
 	. "project/keyvalue/structures/least_reacently_used"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/token_bucket"
+	"strconv"
 )
 
 //korisnik unosi kljuc i kreira se novi HLL
@@ -13,11 +14,15 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 	var input string //kljuc
 	hll := new(HLL)
 	var precision uint8
+	var tempInput string
 
 	for true{
 
 		fmt.Print("Unesite kljuc: ")
-		fmt.Scanln(&input)
+		input = GetKeyInput()
+		if input == "*" {
+			return true, input, nil
+		}
 		input = "HyperLogLog" + input
 		found, data := GET(input, mem, lru, bucket)
 		if found == true {
@@ -31,16 +36,39 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 				fmt.Print("Unesite 1 ili 2: ")
 				fmt.Scanln(&choice)
 
+				if choice == "*" {
+					return true, input, nil
+				}
+				
 				if choice == "1" {
 					hll = BytesToHyperLogLog(data.Value)
+					fmt.Println("Uspesno dobavljanje")
 					return false, input, hll
 
 				}else if choice == "2"{
 
-					fmt.Print("Unesite preciznost: ")
-					fmt.Scanln(&precision)
+					for true {
+						fmt.Println("Unesite preciznost: ")
+						n, err := fmt.Scanln(&tempInput)
+						if tempInput == "*" {
+							return true, input, nil
+						}
+						if err != nil {
+							fmt.Println("Greska prilikom unosa: ", err)
+						} else if n == 0 {
+							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+						}else if !IsNumeric(tempInput) {
+							fmt.Println("Molimo vas unesite broj.")
+						}else {
+							tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
+							precision = uint8(tempInt)
+							break
+						}
+				
+					}
 
 					hll, _ = NewHLL(precision)
+					fmt.Println("Uspesno dodavanje")
 					return false, input, hll
 				} else{
 					fmt.Println("Molimo vas unesite 1 ili 2")
@@ -50,15 +78,33 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 			return true, input, nil
 		}else{
 
-			//TODO: dodaj validacije
-			fmt.Print("Unesite preciznost: ")
-			fmt.Scanln(&precision)
+
+			for true {
+						fmt.Println("Unesite preciznost: ")
+						n, err := fmt.Scanln(&tempInput)
+						if tempInput == "*" {
+							return true, input, nil
+						}
+						if err != nil {
+							fmt.Println("Greska prilikom unosa")
+						} else if n == 0 {
+							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+						}else if !IsNumeric(tempInput) {
+							fmt.Println("Molimo vas unesite broj.")
+						}else {
+							tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
+							precision = uint8(tempInt)
+							break
+						}
+				
+					}
 			hll, _ = NewHLL(precision)
 
 			break
 		}
 	}
 	fmt.Println()
+	fmt.Println("Uspesno dodavanje")
 	return false, input, hll
 }
 
@@ -67,14 +113,17 @@ func GetHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, str
 	hll := new(HLL)
 
 	//unos
-	fmt.Print("Unesite kljuc: ")
-	fmt.Scanln(&key)
+	key = GetKeyInput()
+	if key == "*" {
+		return false, key, nil
+	}
 	key = "HyperLogLog" + key
 	
 	found, data := GET(key, mem, lru, bucket)
 	if found {
 		hllBytes := data.Value
 		hll = BytesToHyperLogLog(hllBytes)
+		fmt.Println("Uspesno dobavljanje")
 		return true, key, hll
 	}
 	return false, key, hll
@@ -84,9 +133,20 @@ func HyperLogLogAddElement(hll *HLL) {
 	var val string
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da dodate: ")
-	fmt.Scanln(&val)
+	for true {
+		fmt.Print("Unesite podatak koji zelite da dodate: ")
+		_, err := fmt.Scanln(&val)
+		if err != nil {
+			fmt.Println("Greska prilikom unosa")
+		} else if val == "*" {
+			return
+		} else {
+			break
+		}
+	}
+	
 	hll.AddToHLL(val)
+	fmt.Println("Uspesno dodavanje")
 }
 
 func HyperLogLogEstimate(hll *HLL) {
@@ -100,6 +160,7 @@ func HyperLogLogEstimate(hll *HLL) {
 func HyperLogLogPUT(key string, hll *HLL, mem MemTable, bucket *TokenBucket) {
 	byteshll := HyperLogLogToBytes(hll)
 	PUT(key, byteshll, mem, bucket)
+	fmt.Println("Uspesno dodavanje")
 }
 
 func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
@@ -112,6 +173,8 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Println("=======================================")
 		fmt.Print("Kljuc aktivnog HyperLogLog-a: ")
 		fmt.Println(userkey)
+		fmt.Println("Velicina niza elemenata: ", activehll.M)
+		fmt.Println("Preciznost: ", activehll.P)
 		fmt.Println()
 		fmt.Println("1 - Kreiraj HyperLogLog")
 		fmt.Println("2 - Dobavi HyperLogLog iz baze podataka")
@@ -135,30 +198,29 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		switch input {
 		case "1":
 			found, tempKey, temphll := CreateHyperLogLog(mem, lru, bucket)
-			if found {
-				fmt.Println("Vec postoji HyperLogLog sa datim kljucem")
-			} else {
+			if !found {
 				activehll = temphll
 				activeKey = tempKey
 				userkey = activeKey[11:]
-				fmt.Println("Uspesno kreiranje")
 			}
 
 		case "2":
 			found, key, temphll := GetHyperLogLog(mem, lru, bucket)
-			if found {
-				activehll = temphll
-				activeKey = key
-				userkey = activeKey[11:]
-				fmt.Println("Uspesno dobavljanje")
-			} else {
-				fmt.Println("Ne postoji HyperLogLog sa datim kljucem")
+			if key != "*" {
+				if found {
+					activehll = temphll
+					activeKey = key
+					userkey = activeKey[11:]
+					fmt.Println("Uspesno dobavljanje")
+				} else {
+					fmt.Println("Ne postoji HyperLogLog sa datim kljucem")
+				}
 			}
+			
 		case "3":
 
 			if len(activeKey) != 0 {
 				HyperLogLogAddElement(activehll)
-				fmt.Println("Uspesno dodavanje")
 			} else {
 				fmt.Println("Nije izabran aktivni HyperLogLog")
 			}
@@ -172,7 +234,6 @@ func HyperLogLogMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		case "5":
 			if len(activeKey) != 0 {
 				HyperLogLogPUT(activeKey, activehll, mem, bucket)
-				fmt.Println("Uspesan upis")
 			} else {
 				fmt.Println("Nije izabran aktivni HyperLogLog")
 			}
