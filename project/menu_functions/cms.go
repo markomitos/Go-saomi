@@ -1,22 +1,28 @@
 package menu_functions
 
 import (
+	"bytes"
 	"fmt"
 	. "project/keyvalue/structures/cms"
 	. "project/keyvalue/structures/least_reacently_used"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/token_bucket"
+	"strconv"
 )
 
 func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *CountMinSketch) {
 	var input string
 	var epsilon float64
 	var delta float64
+
+	var tempInput string
 	cms := new(CountMinSketch)
 	for true{
 
-		fmt.Print("Unesite kljuc: ")
-		fmt.Scanln(&input)
+		input = GetKeyInput()
+		if input == "*" {
+			return true, input, nil
+		}
 		input = "CountMinSketch" + input
 		found, data := GET(input, mem, lru, bucket)
 		if found == true {
@@ -29,6 +35,9 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 				fmt.Println("2. Napravite novi CountMinSketch pod ovim kljucem")
 				fmt.Print("Unesite 1 ili 2: ")
 				fmt.Scanln(&choice)
+				if choice == "*" {
+					return true, input, nil
+				}
 
 				if choice == "1" {
 					cms = BytesToCountMinSketch(data.Value)
@@ -36,10 +45,42 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 
 				}else if choice == "2"{
 
-					fmt.Print("Unesite preciznost (epsilon): ")
-					fmt.Scanln(&epsilon)
-					fmt.Print("Unesite sigurnost tacnosti (delta): ")
-					fmt.Scanln(&delta)
+					for true {
+						fmt.Print("Unesite preciznost (epsilon): ")
+						n, err := fmt.Scanln(&tempInput)
+						if tempInput == "*" {
+							return true, tempInput, nil
+						}
+						if err != nil {
+							fmt.Println("Greska prilikom unosa: ", err)
+						} else if n == 0 {
+							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+						}else if !IsNumeric(tempInput) {
+							fmt.Println("Molimo vas unesite broj.")
+						}else {
+							tempInt, _ := strconv.ParseFloat(tempInput, 64)
+							epsilon = tempInt
+							break
+						}
+					}
+					for true {
+						fmt.Print("Unesite sigurnost tacnosti (delta): ")
+						n, err := fmt.Scanln(&tempInput)
+						if tempInput == "*" {
+							return true, tempInput, nil
+						}
+						if err != nil {
+							fmt.Println("Greska prilikom unosa: ", err)
+						} else if n == 0 {
+							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+						}else if !IsNumeric(tempInput) {
+							fmt.Println("Molimo vas unesite broj.")
+						}else {
+							tempInt, _ := strconv.ParseFloat(tempInput, 64)
+							delta = tempInt
+							break
+						}
+					}
 
 					cms = NewCountMinSketch(epsilon, delta)
 					return false, input, cms
@@ -50,11 +91,42 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 			return true, input, nil
 		}else {
 
-			//TODO: dodaj validacije
-			fmt.Print("Unesite preciznost (epsilon): ")
-			fmt.Scanln(&epsilon)
-			fmt.Print("Unesite sigurnost tacnosti (delta): ")
-			fmt.Scanln(&delta)
+			for true {
+				fmt.Print("Unesite preciznost (epsilon): ")
+				n, err := fmt.Scanln(&tempInput)
+				if tempInput == "*" {
+					return true, tempInput, nil
+				}
+				if err != nil {
+					fmt.Println("Greska prilikom unosa: ", err)
+				} else if n == 0 {
+					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+				}else if !IsNumeric(tempInput) {
+					fmt.Println("Molimo vas unesite broj.")
+				}else {
+					tempInt, _ := strconv.ParseFloat(tempInput, 64)
+					epsilon = tempInt
+					break
+				}
+			}
+			for true {
+				fmt.Print("Unesite sigurnost tacnosti (delta): ")
+				n, err := fmt.Scanln(&tempInput)
+				if tempInput == "*" {
+					return true, tempInput, nil
+				}
+				if err != nil {
+					fmt.Println("Greska prilikom unosa: ", err)
+				} else if n == 0 {
+					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+				}else if !IsNumeric(tempInput) {
+					fmt.Println("Molimo vas unesite broj.")
+				}else {
+					tempInt, _ := strconv.ParseFloat(tempInput, 64)
+					delta = tempInt
+					break
+				}
+			}
 			cms = NewCountMinSketch(epsilon, delta)
 
 			break
@@ -70,7 +142,10 @@ func CountMinSketchGET(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 
 	//unos
 	fmt.Print("Unesite kljuc: ")
-	fmt.Scanln(&key)
+	key = GetKeyInput()
+	if key == "*" {
+		return false, key, nil
+	}
 	key = "CountMinSketch" + key
 	
 	found, data := GET(key, mem, lru, bucket)
@@ -79,7 +154,7 @@ func CountMinSketchGET(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 		cms = BytesToCountMinSketch(cmsBytes)
 		return true, key, cms
 	}
-	return false, key, cms
+	return false, key, nil
 
 }
 
@@ -88,8 +163,12 @@ func CountMinSketchAddElement(cms *CountMinSketch) {
 
 	//unos
 	fmt.Print("Unesite podatak koji zelite da dodate: ")
-	fmt.Scanln(&val)
+	val = GetValueInput()
+	if bytes.Compare(val, []byte("*")) == 0 { //ukoliko je zvezdica, izadji iz funkcije
+		return
+	}
 	AddToCms(cms, val)
+	fmt.Println("Uspesno dodavanje")
 }
 
 func CountMinSketchCheckFrequency(cms *CountMinSketch) {
@@ -97,7 +176,10 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 
 	//unos
 	fmt.Print("Unesite podatak koji zelite da proverite: ")
-	fmt.Scanln(&val)
+	val = GetValueInput()
+	if bytes.Compare(val, []byte("*")) == 0 { //ukoliko je zvezdica, izadji iz funkcije
+		return
+	}
 
 	freq := CheckFrequencyInCms(cms, val)
 
@@ -108,6 +190,7 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 func CountMinSketchPUT(key string, cms *CountMinSketch, mem MemTable, bucket *TokenBucket) {
 	bytesCms := CountMinSkechToBytes(cms)
 	PUT(key, bytesCms, mem, bucket)
+	fmt.Println("Uspesno dodavanje")
 }
 
 func CountMinSketchDELETE(key string, mem MemTable, lru *LRUCache, bucket *TokenBucket) {
@@ -126,6 +209,10 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Println("=======================================")
 		fmt.Print("Kljuc aktivnog CountMinSketch-a: ")
 		fmt.Println(userkey)
+		fmt.Println("Preciznost: ", activeCMS.Epsilon)
+		fmt.Println("Sigurnost tacnosti: ", activeCMS.Delta)
+		fmt.Println("Broj hash funkcija (dubina): ", activeCMS.K)
+		fmt.Println("Broj kolona (sirina): ", activeCMS.M)
 		fmt.Println()
 		fmt.Println("1 - Kreiraj CountMinSketch")
 		fmt.Println("2 - Dobavi CountMinSketch iz baze podataka")
@@ -150,30 +237,29 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		switch input {
 		case "1":
 			found, tempKey, tempCms := CreateCountMinSketch(mem, lru, bucket)
-			if found {
-				fmt.Println("Vec postoji CountMinSKetch sa datim kljucem")
-			} else {
+			if !found {
 				activeCMS = tempCms
 				activeKey = tempKey
 				userkey = activeKey[14:]
-				fmt.Println("Uspesno kreiranje")
 			}
 			
 		case "2":
 			found, key, tempCMS := CountMinSketchGET(mem, lru, bucket)
-			if found {
-				activeCMS = tempCMS
-				activeKey = key
-				userkey = activeKey[14:]
-				fmt.Println("Uspesno dobavljanje")
-			} else {
-				fmt.Println("Ne postoji CountMinSKetch sa datim kljucem")
+			if key != "*" {
+				if found {
+					activeCMS = tempCMS
+					activeKey = key
+					userkey = activeKey[14:]
+					fmt.Println("Uspesno dobavljanje")
+				} else {
+					fmt.Println("Ne postoji CountMinSKetch sa datim kljucem")
+				}
 			}
+
 		case "3":
 
 			if len(activeKey) != 0 {
 				CountMinSketchAddElement(activeCMS)
-				fmt.Println("Uspesno dodavanje")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}
@@ -181,14 +267,12 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		case "4":
 			if len(activeKey) != 0 {
 				CountMinSketchCheckFrequency(activeCMS)
-				fmt.Println("Operacija uspesna")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}
 		case "5":
 			if len(activeKey) != 0 {
 				CountMinSketchPUT(activeKey, activeCMS, mem, bucket)
-				fmt.Println("Uspesan upis")
 			} else{
 				fmt.Println("Nije izabran aktivni CMS")
 			}

@@ -9,6 +9,7 @@ import (
 	. "project/keyvalue/structures/token_bucket"
 )
 
+//Generise i upisuje u bazu podataka binarni kod
 func SimHashGenerateBinaryHash(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	var value []byte
 

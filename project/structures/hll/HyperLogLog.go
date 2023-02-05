@@ -17,8 +17,8 @@ const (
 )
 
 type HLL struct {
-	M   uint64
-	P   uint8
+	M   uint64 // velicina niza elemenata
+	P   uint8 // preciznost
 	Reg []uint8
 }
 

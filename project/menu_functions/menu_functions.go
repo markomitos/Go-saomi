@@ -10,11 +10,16 @@ import (
 	. "project/keyvalue/structures/scan"
 	. "project/keyvalue/structures/token_bucket"
 	. "project/keyvalue/structures/wal"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
 
-//TO DO: funkcija koja ce se pozivati iz menija
+//Ukoliko string ima samo cifre vraca true
+func IsNumeric(word string) bool{
+	return regexp.MustCompile(`\d`).MatchString(word)
+}
 
 func GetKeyInput() (string) {
 	var key string
@@ -162,11 +167,14 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 	return false, nil
 }
 
+//Funkcija koja uzima unos korisnika i poziva RangeScan
 func InitiateRangeScan(mem MemTable) {
 	var minKey string
 	var maxKey string
 	var pageLen uint32
 	var pageNum uint32
+
+	var tempInput string
 
 	for true {
 		fmt.Println("Unesite najmanji kljuc: ")
@@ -200,23 +208,38 @@ func InitiateRangeScan(mem MemTable) {
 	}
 	for true {
 		fmt.Println("Unesite velicinu stranice: ")
-		n, err := fmt.Scanln(&pageLen)
+		n, err := fmt.Scanln(&tempInput)
+		if tempInput == "*" {
+			return
+		}
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
 		} else if n == 0 {
 			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-		} else {
+		}else if !IsNumeric(tempInput) {
+			fmt.Println("Molimo vas unesite broj.")
+		}else {
+			tempInt, _ := strconv.ParseUint(tempInput, 10, 64)
+			pageLen = uint32(tempInt)
 			break
 		}
+
 	}
 	for true {
 		fmt.Println("Unesite broj stranice: ")
-		n, err := fmt.Scanln(&pageNum)
+		n, err := fmt.Scanln(&tempInput)
+		if tempInput == "*" {
+			return
+		}
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
 		} else if n == 0 {
 			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-		} else {
+		}else if !IsNumeric(tempInput) {
+			fmt.Println("Molimo vas unesite broj.")
+		}else {
+			tempInt, _ := strconv.ParseUint(tempInput, 10, 64)
+			pageNum = uint32(tempInt)
 			break
 		}
 	}
@@ -226,6 +249,8 @@ func InitiateRangeScan(mem MemTable) {
 			print("Kljuc: ", keys[i])
 			datas[i].Print()
 		}
+	} else {
+		fmt.Println("Trazena stranica ne postoji")
 	}
 
 
@@ -254,10 +279,12 @@ func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, me
 	return true, scan.Keys, scan.Data
 }
 
+//Funkcija koja uzima unos korisnika i poziva ListScan
 func InitiateListScan(mem MemTable) {
 	var prefix string
 	var pageLen uint32
 	var pageNum uint32
+	var tempInput string
 
 	for true {
 		fmt.Println("Unesite prefix: ")
@@ -276,23 +303,38 @@ func InitiateListScan(mem MemTable) {
 	}
 	for true {
 		fmt.Println("Unesite velicinu stranice: ")
-		n, err := fmt.Scanln(&pageLen)
+		n, err := fmt.Scanln(&tempInput)
+		if tempInput == "*" {
+			return
+		}
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
 		} else if n == 0 {
 			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-		} else {
+		}else if !IsNumeric(tempInput) {
+			fmt.Println("Molimo vas unesite broj.")
+		}else {
+			tempInt, _ := strconv.ParseUint(tempInput, 10, 64)
+			pageLen = uint32(tempInt)
 			break
 		}
+
 	}
 	for true {
 		fmt.Println("Unesite broj stranice: ")
-		n, err := fmt.Scanln(&pageNum)
+		n, err := fmt.Scanln(&tempInput)
+		if tempInput == "*" {
+			return
+		}
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
 		} else if n == 0 {
 			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-		} else {
+		}else if !IsNumeric(tempInput) {
+			fmt.Println("Molimo vas unesite broj.")
+		}else {
+			tempInt, _ := strconv.ParseUint(tempInput, 10, 64)
+			pageNum = uint32(tempInt)
 			break
 		}
 	}
@@ -302,6 +344,8 @@ func InitiateListScan(mem MemTable) {
 			print("Kljuc: ", keys[i])
 			datas[i].Print()
 		}
+	}else {
+		fmt.Println("Trazena stranica ne postoji")
 	}
 
 
