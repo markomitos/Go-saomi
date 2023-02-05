@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 
@@ -24,26 +23,6 @@ import (
 	// . "project/keyvalue/structures/sstable"
 )
 
-//RANDOM STRING GENERATOR
-const charset = "abcdefghijklmnopqrstuvwxyz"
-
-var seededRand *rand.Rand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
-
-func StringWithCharset(length int, charset string) string {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}
-	return string(b)
-}
-
-func RandomString(length int) string {
-	return StringWithCharset(length, charset)
-}
-//--------------------------
-
-
 func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	fmt.Println("=======================================")
 	fmt.Println("============= GLAVNI MENI =============")
@@ -60,6 +39,7 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	fmt.Println("9 - HyperLogLog menu")
 	fmt.Println("10 - SimHash menu")
 	fmt.Println("11 - Ispisi sve podatke")
+	fmt.Println("12 - Generisanje unosa")
 	fmt.Println("X - Izlaz iz programa")
 	fmt.Println("=======================================")
 	fmt.Print("Izaberite opciju: ")
@@ -119,6 +99,8 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	case "11":
 		mem.Print()
 		ReadLsm().Print()
+	case "12":
+		GenerateEntries(mem, bucket)
 	case "x":
 		fmt.Println("Uspesan izlaz!")
 		os.Exit(0)
@@ -143,22 +125,6 @@ func main() {
 
 	//Ogranicenje brzine pristupa
 	bucket := NewTokenBucket()
-
-
-	// ---------- GENERATOR ----------
-	// for i:=1023; i > 0; i--{
-	// 	value := []byte(RandomString(5))
-	// 	key := RandomString(5)
-	// 	// key := strconv.FormatInt(int64(i),10)
-		
-	// 	if !PUT(key,value,memtable,bucket){
-	// 		fmt.Println("NAPAD")
-	// 	} else {
-	// 		fmt.Println("PROSLO")
-	// 	}
-	// 	time.Sleep(time.Millisecond * 100)
-	// }
-	
 
 	for true {
 		menu(memtable, lru, bucket)

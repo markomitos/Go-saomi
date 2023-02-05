@@ -3,6 +3,7 @@ package menu_functions
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	. "project/keyvalue/structures/dataType"
 	. "project/keyvalue/structures/entry"
@@ -395,4 +396,60 @@ func TimestampToTime(timestamp uint64) time.Time {
 	return time
 }
 
+
+//RANDOM STRING GENERATOR
+const charset = "abcdefghijklmnopqrstuvwxyz"
+
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
+
+func StringWithCharset(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+func RandomString(length int) string {
+	return StringWithCharset(length, charset)
+}
+//--------------------------
+
+
+// ---------- GENERATOR ----------
+func GenerateEntries(memtable MemTable, bucket *TokenBucket){
+	scanner := bufio.NewScanner(os.Stdin)
+	num := 0
+	for true{
+		fmt.Print("Unesite koliko unosa zelite da generisete: ")
+		scanner.Scan()
+		numstr := strings.TrimSpace(scanner.Text())
+		err := scanner.Err()
+		if err != nil {
+			fmt.Println("Greska prilikom unosa!")
+			continue
+		}
+		num, err = strconv.Atoi(numstr)
+		if err != nil {
+			fmt.Println("Morate uneti broj!")
+			continue
+		}
+		break
+	}
+	
+	fmt.Println("----------- GENERISANJE -----------")
+	for i:=0; i < num; i++{
+		value := []byte(RandomString(5))
+		key := RandomString(5)
+		
+		if !PUT(key,value,memtable,bucket){
+			fmt.Println("NAPAD")
+		} else {
+			fmt.Println("PROSLO ", i+1)
+		}
+		time.Sleep(time.Millisecond * 100) //prevencija napada
+	}
+	fmt.Println("----------- KRAJ GENERISANJA -----------")
+}
 

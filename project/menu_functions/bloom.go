@@ -78,7 +78,7 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 					
 						}
 						for true {
-							fmt.Println("Unesite Sigurnost tacnosti: ")
+							fmt.Println("Unesite dozvoljeni procenat greske: ")
 							scanner.Scan()
 							tempInput = strings.TrimSpace(scanner.Text())
 
@@ -112,7 +112,7 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 		}else{
 
 			for true {
-				fmt.Println("Unesite ocekivani broj elemenata: ")
+				fmt.Print("Unesite ocekivani broj elemenata: ")
 				scanner.Scan()
 				tempInput = strings.TrimSpace(scanner.Text())
 
@@ -132,7 +132,7 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 		
 			}
 			for true {
-				fmt.Println("Unesite Sigurnost tacnosti: ")
+				fmt.Print("Unesite dozvoljeni procenat greske: ")
 				scanner.Scan()
 				tempInput = strings.TrimSpace(scanner.Text())
 
@@ -183,7 +183,7 @@ func BloomFilterAddElement(blm *BloomFilter) {
 	var val []byte
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da dodate: ")
+	fmt.Println("Unesite podatak koji zelite da dodate: ")
 	val = GetValueInput()
 
 	if bytes.Compare(val, []byte("*")) == 0 { 	//ukoliko je uneta *
@@ -198,7 +198,7 @@ func BloomFilterFindElem(blm *BloomFilter) {
 	var val []byte
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da proverite: ")
+	fmt.Println("Unesite podatak koji zelite da proverite: ")
 	val = GetValueInput()
 
 	if bytes.Compare(val, []byte("*")) == 0 { 	//ukoliko je uneta *

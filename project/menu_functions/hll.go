@@ -3,7 +3,6 @@ package menu_functions
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	. "project/keyvalue/structures/hll"
 	. "project/keyvalue/structures/least_reacently_used"
@@ -44,7 +43,7 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 
 				err := scanner.Err()
 				if err != nil {
-					log.Fatal(err)
+					fmt.Println("Greska tokom unosa!")
 				}
 
 				if choice == "*" {
@@ -59,7 +58,7 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 				} else if choice == "2" {
 
 					for true {
-						fmt.Println("Unesite preciznost: ")
+						fmt.Print("Unesite preciznost: ")
 						scanner.Scan()
 						tempInput = strings.TrimSpace(scanner.Text())
 
@@ -91,9 +90,9 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 		} else {
 
 			for true {
-				fmt.Println("Unesite preciznost: ")
+				fmt.Print("Unesite preciznost: ")
 				scanner.Scan()
-				input = strings.TrimSpace(scanner.Text())
+				tempInput = strings.TrimSpace(scanner.Text())
 
 				err := scanner.Err()
 				if tempInput == "*" {
@@ -168,7 +167,7 @@ func HyperLogLogEstimate(hll *HLL) {
 
 	estimation := hll.Estimate()
 	fmt.Print("Procenjena kardinalnost iznosi: ")
-	fmt.Print(estimation)
+	fmt.Println(estimation)
 
 }
 

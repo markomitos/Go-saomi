@@ -38,7 +38,13 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 				fmt.Println("1. Dobavite ovaj CountMinSketch iz baze podataka")
 				fmt.Println("2. Napravite novi CountMinSketch pod ovim kljucem")
 				fmt.Print("Unesite 1 ili 2: ")
-				fmt.Scanln(&choice)
+				scanner.Scan()
+				choice = strings.TrimSpace(scanner.Text())
+				err := scanner.Err()
+				if err != nil {
+					fmt.Println("Greska tokom unosa!")
+				}
+
 				if choice == "*" {
 					return true, input, nil
 				}
@@ -52,7 +58,7 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 					for true {
 						fmt.Print("Unesite preciznost (epsilon): ")
 						scanner.Scan()
-						input = strings.TrimSpace(scanner.Text())
+						tempInput = strings.TrimSpace(scanner.Text())
 
 						err := scanner.Err()
 						if tempInput == "*" {
@@ -71,7 +77,7 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 					for true {
 						fmt.Print("Unesite sigurnost tacnosti (delta): ")
 						scanner.Scan()
-						input = strings.TrimSpace(scanner.Text())
+						tempInput = strings.TrimSpace(scanner.Text())
 
 						err := scanner.Err()
 						if tempInput == "*" {
@@ -100,7 +106,7 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 			for true {
 				fmt.Print("Unesite preciznost (epsilon): ")
 				scanner.Scan()
-				input = strings.TrimSpace(scanner.Text())
+				tempInput = strings.TrimSpace(scanner.Text())
 
 				err := scanner.Err()
 				if tempInput == "*" {
@@ -119,7 +125,7 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 			for true {
 				fmt.Print("Unesite sigurnost tacnosti (delta): ")
 				scanner.Scan()
-				input = strings.TrimSpace(scanner.Text())
+				tempInput = strings.TrimSpace(scanner.Text())
 
 				err := scanner.Err()
 				if tempInput == "*" {
@@ -170,7 +176,7 @@ func CountMinSketchAddElement(cms *CountMinSketch) {
 	var val []byte
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da dodate: ")
+	fmt.Println("Unesite podatak koji zelite da dodate: ")
 	val = GetValueInput()
 	if bytes.Compare(val, []byte("*")) == 0 { //ukoliko je zvezdica, izadji iz funkcije
 		return
@@ -183,7 +189,7 @@ func CountMinSketchCheckFrequency(cms *CountMinSketch) {
 	var val []byte
 
 	//unos
-	fmt.Print("Unesite podatak koji zelite da proverite: ")
+	fmt.Println("Unesite podatak koji zelite da proverite: ")
 	val = GetValueInput()
 	if bytes.Compare(val, []byte("*")) == 0 { //ukoliko je zvezdica, izadji iz funkcije
 		return
