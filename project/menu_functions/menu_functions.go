@@ -33,15 +33,15 @@ func GetKeyInput() (string) {
 		} else if n == 0 {
 			fmt.Println("Prazan unos. Molimo vas probajte opet.")
 		}else if strings.HasPrefix(key, "BloomFilter") {
-			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if strings.HasPrefix(key, "CountMinSketch") {
-			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if strings.HasPrefix(key, "HyperLogLog") {
-			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if strings.HasPrefix(key, "SimHash") {
-			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+			fmt.Println("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
 		} else if key == "*" {
-			print("Upotrebili ste rezervisani kljuc! Molimo vas unesite drugi kljuc.")
+			fmt.Println("Upotrebili ste rezervisani kljuc! Molimo vas unesite drugi kljuc.")
 		}else {
 			break
 		}

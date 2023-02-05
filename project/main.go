@@ -141,17 +141,18 @@ func main() {
 
 
 	// ---------- GENERATOR ----------
-	// for i:=1023; i > 0; i--{
-	// 	value := []byte(RandomString(5))
-	// 	key := strconv.FormatInt(int64(i),10)
+	for i:=1023; i > 0; i--{
+		value := []byte(RandomString(5))
+		key := RandomString(5)
+		// key := strconv.FormatInt(int64(i),10)
 		
-	// 	if !PUT(key,value,memtable,bucket){
-	// 		fmt.Println("NAPAD")
-	// 	} else {
-	// 		fmt.Println("PROSLO")
-	// 	}
-	// 	time.Sleep(time.Millisecond * 100)
-	// }
+		if !PUT(key,value,memtable,bucket){
+			fmt.Println("NAPAD")
+		} else {
+			fmt.Println("PROSLO")
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
 	
 
 	for true {

@@ -68,7 +68,7 @@ func SimHashCompare(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		}
 	}
 	fmt.Print("Slicnost ova dva podatka iznosi: ")
-	fmt.Print(Compare(data1.Value, data2.Value))
+	fmt.Println(Compare(data1.Value, data2.Value))
 }
 
 
