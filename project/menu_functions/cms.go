@@ -1,16 +1,20 @@
 package menu_functions
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	. "project/keyvalue/structures/cms"
 	. "project/keyvalue/structures/least_reacently_used"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/token_bucket"
 	"strconv"
+	"strings"
 )
 
 func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *CountMinSketch) {
+	scanner := bufio.NewScanner(os.Stdin)
 	var input string
 	var epsilon float64
 	var delta float64
@@ -47,14 +51,15 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 
 					for true {
 						fmt.Print("Unesite preciznost (epsilon): ")
-						n, err := fmt.Scanln(&tempInput)
+						scanner.Scan()
+						input = strings.TrimSpace(scanner.Text())
+
+						err := scanner.Err()
 						if tempInput == "*" {
 							return true, tempInput, nil
 						}
 						if err != nil {
 							fmt.Println("Greska prilikom unosa: ", err)
-						} else if n == 0 {
-							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
 						}else if !IsNumeric(tempInput) {
 							fmt.Println("Molimo vas unesite broj.")
 						}else {
@@ -65,14 +70,15 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 					}
 					for true {
 						fmt.Print("Unesite sigurnost tacnosti (delta): ")
-						n, err := fmt.Scanln(&tempInput)
+						scanner.Scan()
+						input = strings.TrimSpace(scanner.Text())
+
+						err := scanner.Err()
 						if tempInput == "*" {
 							return true, tempInput, nil
 						}
 						if err != nil {
 							fmt.Println("Greska prilikom unosa: ", err)
-						} else if n == 0 {
-							fmt.Println("Prazan unos.  Molimo vas probajte opet.")
 						}else if !IsNumeric(tempInput) {
 							fmt.Println("Molimo vas unesite broj.")
 						}else {
@@ -93,14 +99,15 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 
 			for true {
 				fmt.Print("Unesite preciznost (epsilon): ")
-				n, err := fmt.Scanln(&tempInput)
+				scanner.Scan()
+				input = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
 				if tempInput == "*" {
 					return true, tempInput, nil
 				}
 				if err != nil {
 					fmt.Println("Greska prilikom unosa: ", err)
-				} else if n == 0 {
-					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
 				}else if !IsNumeric(tempInput) {
 					fmt.Println("Molimo vas unesite broj.")
 				}else {
@@ -111,14 +118,15 @@ func CreateCountMinSketch(mem MemTable, lru *LRUCache, bucket *TokenBucket) (boo
 			}
 			for true {
 				fmt.Print("Unesite sigurnost tacnosti (delta): ")
-				n, err := fmt.Scanln(&tempInput)
+				scanner.Scan()
+				input = strings.TrimSpace(scanner.Text())
+
+				err := scanner.Err()
 				if tempInput == "*" {
 					return true, tempInput, nil
 				}
 				if err != nil {
 					fmt.Println("Greska prilikom unosa: ", err)
-				} else if n == 0 {
-					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
 				}else if !IsNumeric(tempInput) {
 					fmt.Println("Molimo vas unesite broj.")
 				}else {
@@ -200,6 +208,7 @@ func CountMinSketchDELETE(key string, mem MemTable, lru *LRUCache, bucket *Token
 
 
 func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
+	scanner := bufio.NewScanner(os.Stdin)
 	activeCMS := new(CountMinSketch)
 	var activeKey string //kljuc CMS-a
 	var userkey string //kljuc koji je korisnik uneo i koji se ispisuje korisniku
@@ -225,13 +234,11 @@ func CountMinSKetchMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		fmt.Print("Izaberite opciju: ")
 
 		var input string
-		n, err := fmt.Scanln(&input)
-
+		scanner.Scan()
+		input = strings.TrimSpace(scanner.Text())
+		err := scanner.Err()
 		if err != nil {
 			fmt.Println("Greska prilikom unosa: ", err)
-		} else if n == 0 {
-			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
-			return
 		}
 
 		switch input {
