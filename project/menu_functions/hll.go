@@ -8,6 +8,7 @@ import (
 	. "project/keyvalue/structures/token_bucket"
 )
 
+//korisnik unosi kljuc i kreira se novi HLL
 func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, string, *HLL) {
 	var input string //kljuc
 	hll := new(HLL)

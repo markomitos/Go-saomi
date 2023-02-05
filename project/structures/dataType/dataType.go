@@ -1,6 +1,9 @@
 package dataType
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type Data struct {
 	Value     []byte
@@ -16,9 +19,18 @@ func NewData(val []byte, tombstone bool, timestamp uint64) *Data {
 	return data
 }
 
+// OLD PRINT
+// func (data *Data) Print() {
+// 	fmt.Println(" ------------ DATA ------------")
+// 	fmt.Println(data.Value)
+// 	fmt.Println(data.Tombstone)
+// 	fmt.Println(data.Timestamp)
+// }
+
+
 func (data *Data) Print() {
-	fmt.Println(" ------------ DATA ------------")
-	fmt.Println(data.Value)
-	fmt.Println(data.Tombstone)
-	fmt.Println(data.Timestamp)
+	fmt.Println("------------ DATA ------------")
+	fmt.Println("Vrednost: " , string(data.Value))
+	fmt.Println("Vreme dodavanja: " , time.Unix(int64(data.Timestamp), 0))
+	fmt.Println("Tombstone: ", data.Tombstone)
 }

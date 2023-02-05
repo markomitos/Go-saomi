@@ -43,6 +43,7 @@ func RandomString(length int) string {
 
 
 func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
+	fmt.Println("=======================================")
 	fmt.Println("1 - PUT")
 	fmt.Println("2 - GET")
 	fmt.Println("3 - DELETE")
@@ -69,19 +70,31 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	switch input {
 	case "1":
 		key, val := GetUserInput()
-		PUT(key, val, mem, bucket)
+		if key != "*"{
+			PUT(key, val, mem, bucket)
+		}
 	case "2":
 		key:= GetKeyInput()
-		GET(key, mem, lru, bucket)
+		if key != "*"{
+			found, data := GET(key, mem, lru, bucket)
+			if found {
+				data.Print()
+			} else {
+				fmt.Println("Kljuc se ne nalazi u bazi podataka")
+			}
+		}
+		
 	case "3":
 		key:= GetKeyInput()
-		DELETE(key, mem, lru, bucket)
+		if key != "*"{
+			DELETE(key, mem, lru, bucket)
+		}
 	case "4":
-		fmt.Println("4")
+		InitiateListScan(mem)
 	case "5":
-		fmt.Println("5")
+		InitiateRangeScan(mem)
 	case "6":
-		fmt.Println("5")
+		RunCompact()
 	case "7":
 		CountMinSKetchMenu(mem, lru, bucket)
 	case "8":
@@ -89,7 +102,7 @@ func menu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 	case "9":
 		HyperLogLogMenu(mem, lru, bucket)
 	case "10":
-		fmt.Println("5")
+		SimHashMenu(mem, lru, bucket)
 	case "x":
 		fmt.Println("Vidimo se sledeci put!")
 		os.Exit(0)
@@ -166,6 +179,7 @@ func main() {
 	// ReadLsm().Print()
 
 	fmt.Println("====== DOBRODOSLI U KEY-VALUE ENGINE ======")
+	fmt.Println("Ukoliko zelite da izadjete iz bilo koje funkcije, UNESITE '*'")
 	for true {
 		menu(memtable, lru, bucket)
 	}

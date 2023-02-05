@@ -14,10 +14,11 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 	var expectedNumOfElem uint32
 	var falsePositiveRate float64
 
-	for true{
 
-		fmt.Print("Unesite kljuc: ")
-		fmt.Scanln(&input)
+		input = GetKeyInput()
+		if input == "*" {
+			return true, input, nil
+		}
 		input = "BloomFilter" + input
 		found, data := GET(input, mem, lru, bucket)
 		if found == true {
@@ -29,24 +30,33 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 				fmt.Println("1. Dobavite ovaj BloomFilter iz baze podataka")
 				fmt.Println("2. Napravite novi BloomFilter pod ovim kljucem")
 				fmt.Print("Unesite 1 ili 2: ")
-				fmt.Scanln(&choice)
+				n, err := fmt.Scanln(&choice)
 
-				if choice == "1" {
-					blm = MenuByteToBloomFilter(data.Value)
-					return false, input, blm
-
-				}else if choice == "2"{
-
-					fmt.Print("ocekivani broj elemenata: ")
-					fmt.Scanln(&expectedNumOfElem)
-					fmt.Print("Unesite sigurnost tacnosti: ")
-					fmt.Scanln(&falsePositiveRate)
-
-					blm = NewBloomFilter(expectedNumOfElem, falsePositiveRate)
-					return false, input, blm
-				} else{
-					fmt.Println("Molimo vas unesite 1 ili 2")
+				if err != nil {
+					fmt.Println("Greska prilikom unosa: ", err)
+				} else if n == 0 {
+					fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+				//ukoliko nema greske:
+				} else {
+					if choice == "1" {
+						blm = MenuByteToBloomFilter(data.Value)
+						return false, input, blm
+	
+					}else if choice == "2"{
+	
+						fmt.Print("ocekivani broj elemenata: ")
+						fmt.Scanln(&expectedNumOfElem)
+						fmt.Print("Unesite sigurnost tacnosti: ")
+						fmt.Scanln(&falsePositiveRate)
+	
+						blm = NewBloomFilter(expectedNumOfElem, falsePositiveRate)
+						return false, input, blm
+					} else{
+						fmt.Println("Molimo vas unesite 1 ili 2")
+					}
 				}
+
+				
 			}
 			
 			return true, input, nil
@@ -59,8 +69,6 @@ func CreateBloomFilter(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 			fmt.Scanln(&falsePositiveRate)
 			blm = NewBloomFilter(expectedNumOfElem, falsePositiveRate)
 
-			break
-		}
 	}
 	fmt.Println()
 	return false, input, blm
@@ -150,15 +158,17 @@ func BloomFilterMenu(mem MemTable, lru *LRUCache, bucket *TokenBucket) {
 		switch input {
 		case "1":
 			found, tempKey, tempBLM := CreateBloomFilter(mem, lru, bucket)
-			if found {
-				fmt.Println("Vec postoji BloomFilter sa datim kljucem")
-			} else {
-				activeBLM = tempBLM
-				activeKey = tempKey
-				userkey = activeKey[11:]
-				fmt.Println("Uspesno kreiranje")
+			if tempKey != "*" {
+				if found {
+					fmt.Println("Vec postoji BloomFilter sa datim kljucem")
+				} else {
+					activeBLM = tempBLM
+					activeKey = tempKey
+					userkey = activeKey[11:]
+					fmt.Println("Uspesno kreiranje")
+				}
 			}
-
+			
 		case "2":
 			found, key, tempBLM := GetBloomFilter(mem, lru, bucket)
 			if found {

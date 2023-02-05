@@ -8,9 +8,9 @@ import (
 	. "project/keyvalue/structures/lsm"
 	. "project/keyvalue/structures/memtable"
 	. "project/keyvalue/structures/scan"
-	. "project/keyvalue/structures/simhash"
 	. "project/keyvalue/structures/token_bucket"
 	. "project/keyvalue/structures/wal"
+	"strings"
 	"time"
 )
 
@@ -18,25 +18,56 @@ import (
 
 func GetKeyInput() (string) {
 	var key string
-	fmt.Print("Unesite kljuc: ")
-	fmt.Scanln(&key)
+	for true {
+		fmt.Print("Unesite kljuc: ")
+		n, err := fmt.Scanln(&key)
+
+		//validacije
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos. Molimo vas probajte opet.")
+		}else if strings.HasPrefix(key, "BloomFilter") {
+			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+		} else if strings.HasPrefix(key, "CountMinSketch") {
+			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+		} else if strings.HasPrefix(key, "HyperLogLog") {
+			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+		} else if strings.HasPrefix(key, "SimHash") {
+			print("Upotrebili ste rezervisani prefix! Molimo vas unesite drugi kljuc.")
+		} else {
+			break
+		}
+		
+	}
 	return key
 }
 
 func GetValueInput() ([]byte) {
 	var elem []byte
-	fmt.Print("Unesite vrednost: ")
-	fmt.Scanln(&elem)
+	for true {
+		fmt.Print("Unesite vrednost: ")
+		n, err := fmt.Scanln(&elem)
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos. Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
 	return elem
 }
 
 func GetUserInput() (string, []byte){
 
 	key := GetKeyInput()
+	if key != "*" {
+		elem := GetValueInput()
+		return key, elem
+	}
+	return key, nil
 
-	elem := GetValueInput()
-
-	return key, elem
 }
 
 // ------------ WRITEPATH ------------
@@ -131,6 +162,76 @@ func GET(key string, memtable MemTable,lru *LRUCache, bucket *TokenBucket) (bool
 	return false, nil
 }
 
+func InitiateRangeScan(mem MemTable) {
+	var minKey string
+	var maxKey string
+	var pageLen uint32
+	var pageNum uint32
+
+	for true {
+		fmt.Println("Unesite najmanji kljuc: ")
+		n, err := fmt.Scanln(&minKey)
+		if minKey == "*" {
+			return
+		}
+
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	for true {
+		fmt.Println("Unesite najveci kljuc: ")
+		n, err := fmt.Scanln(&maxKey)
+		if maxKey == "*" {
+			return
+		}
+
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	for true {
+		fmt.Println("Unesite velicinu stranice: ")
+		n, err := fmt.Scanln(&pageLen)
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	for true {
+		fmt.Println("Unesite broj stranice: ")
+		n, err := fmt.Scanln(&pageNum)
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	found, keys, datas := RANGE_SCAN(minKey, maxKey, pageLen, pageNum, mem)
+	if found {
+		for i := 0; i < len(keys); i++ {
+			print("Kljuc: ", keys[i])
+			datas[i].Print()
+		}
+	}
+
+
+
+}
+
 // ------------ RANGE SCAN ------------
 // vraca niz kljuceva i niz podataka koji su u opsegu datog intervala
 // Vraca rezultate u opsegu od najnovijeg do najstarijeg
@@ -151,6 +252,60 @@ func RANGE_SCAN(minKey string, maxKey string, pageLen uint32, pageNum uint32, me
 	}
 
 	return true, scan.Keys, scan.Data
+}
+
+func InitiateListScan(mem MemTable) {
+	var prefix string
+	var pageLen uint32
+	var pageNum uint32
+
+	for true {
+		fmt.Println("Unesite prefix: ")
+		n, err := fmt.Scanln(&prefix)
+		if prefix == "*" {
+			return
+		}
+
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	for true {
+		fmt.Println("Unesite velicinu stranice: ")
+		n, err := fmt.Scanln(&pageLen)
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	for true {
+		fmt.Println("Unesite broj stranice: ")
+		n, err := fmt.Scanln(&pageNum)
+		if err != nil {
+			fmt.Println("Greska prilikom unosa: ", err)
+		} else if n == 0 {
+			fmt.Println("Prazan unos.  Molimo vas probajte opet.")
+		} else {
+			break
+		}
+	}
+	found, keys, datas := LIST_SCAN(prefix, pageLen, pageNum, mem)
+	if found {
+		for i := 0; i < len(keys); i++ {
+			print("Kljuc: ", keys[i])
+			datas[i].Print()
+		}
+	}
+
+
+
 }
 
 // ------------ LIST SCAN ------------
@@ -175,21 +330,9 @@ func LIST_SCAN(prefix string, pageLen uint32, pageNum uint32, memtable MemTable)
 	return true, scan.Keys, scan.Data
 }
 
-//Ukoliko se kljucevi nalaze u datoteci poredi ih i vraca hemingovo rastojanje izmedju vrednosti
-func SimHashCompare(key1 string, key2 string, mem MemTable, lru *LRUCache, bucket *TokenBucket) (int) {
-	found1, data1 := GET(key1, mem, lru, bucket)
-	found2, data2 := GET(key2, mem, lru, bucket)
-
-	if found1 == false {
-		fmt.Println("Kljuc 1 se ne nalazi u memoriji.")
-		return -1
-	}
-
-	if found2 == false {
-		fmt.Println("Kljuc 2 se ne nalazi u memoriji.")
-		return -1
-	}
-
-	return Compare(data1.Value, data2.Value)
+func TimestampToTime(timestamp uint64) time.Time {
+	time := time.Unix(int64(timestamp), 0)
+	return time
 }
+
 

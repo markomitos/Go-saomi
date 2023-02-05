@@ -1,9 +1,12 @@
 package simhash
 
 import (
+	"bytes"
 	"crypto/md5"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -47,9 +50,9 @@ func GenerateWeightedMap(bytes []byte) map[string]int {
 	}
 	return mapa
 }
-
-func HashText(weightedMap map[string]int) []int {
 	//Hash i konvertovanje u binarno
+func HashText(weightedMap map[string]int) []int {
+
 	hashedMap := make(map[string]string)
 	for i, _ := range weightedMap {
 		hashedMap[i] = ToBinary(GetMD5Hash(i))
@@ -103,4 +106,31 @@ func Compare(val1 []byte, val2 []byte) int {
 	}
 	fmt.Println(result)
 	return result
+}
+
+func BinaryHashToByte(binaryHash []int) []byte {
+	bytes := make([]byte, 0)
+	for i:= 0; i < len(binaryHash); i++ {
+		bytesElem := make([]byte, 4)
+		binary.BigEndian.PutUint32(bytesElem, uint32(binaryHash[i]))
+		bytes = append(bytes, bytesElem...)
+	}
+	return bytes
+}
+
+func ByteToBinaryHash(HashedByte []byte) []int {
+	binaryHash := make([]int, 0)
+	reader := bytes.NewReader(HashedByte)
+	bytes := make([]byte, 4)
+
+	//Ucitavamo podatke
+	for i:= 0; i < len(binaryHash); i++ {
+		_, err := reader.Read(bytes)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bit := binary.BigEndian.Uint32(bytes)
+		binaryHash = append(binaryHash, int(bit))
+	}
+	return binaryHash
 }
