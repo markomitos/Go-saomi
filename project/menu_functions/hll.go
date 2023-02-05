@@ -22,7 +22,6 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 
 	for true {
 
-		fmt.Print("Unesite kljuc: ")
 		input = GetKeyInput()
 		if input == "*" {
 			return true, input, nil
@@ -58,7 +57,7 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 				} else if choice == "2" {
 
 					for true {
-						fmt.Print("Unesite preciznost(4 - 16): ")
+						fmt.Print("Unesite preciznost: ")
 						scanner.Scan()
 						tempInput = strings.TrimSpace(scanner.Text())
 
@@ -72,12 +71,8 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 							fmt.Println("Molimo vas unesite broj.")
 						} else {
 							tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
-							if tempInt >= 4 && tempInt <= 16 {
-								precision = uint8(tempInt)
-								break
-							} else {
-								fmt.Println("Preciznost mora biti izmedju 4 i 16!")
-							}
+							precision = uint8(tempInt)
+							break
 						}
 
 					}
@@ -94,7 +89,7 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 		} else {
 
 			for true {
-				fmt.Print("Unesite preciznost(4 - 16) ")
+				fmt.Print("Unesite preciznost: ")
 				scanner.Scan()
 				tempInput = strings.TrimSpace(scanner.Text())
 
@@ -108,12 +103,9 @@ func CreateHyperLogLog(mem MemTable, lru *LRUCache, bucket *TokenBucket) (bool, 
 					fmt.Println("Molimo vas unesite broj.")
 				} else {
 					tempInt, _ := strconv.ParseUint(tempInput, 10, 8)
-					if tempInt >= 4 && tempInt <= 16 {
-						precision = uint8(tempInt)
-						break
-					} else {
-						fmt.Println("Preciznost mora biti izmedju 4 i 16!")
-					}
+					precision = uint8(tempInt)
+					break
+					
 				}
 
 			}
